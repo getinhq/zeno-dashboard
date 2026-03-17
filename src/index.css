@@ -1,3 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-foreground font-sans antialiased min-h-screen;
+    background-color: #0a0a0a;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground font-medium px-4 py-2 rounded-sm transition-colors hover:bg-primary/90 flex items-center justify-center;
+  }
+  .btn-secondary {
+    @apply bg-transparent border border-border text-foreground font-medium px-4 py-2 rounded-sm transition-colors hover:bg-card-hover flex items-center justify-center;
+  }
+  .glass-panel {
+    @apply bg-card/80 backdrop-blur-md border border-border/50 rounded-md;
+  }
+  .link-hover {
+    @apply hover:text-primary transition-colors cursor-pointer;
+  }
+}
+
+/* custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full hover:bg-muted;
+}
