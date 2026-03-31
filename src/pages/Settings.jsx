@@ -11,6 +11,7 @@ export function Settings() {
   const [useMinio, setUseMinio] = useState(true);
   const [localCasRoot, setLocalCasRoot] = useState('/tmp/zeno_cas');
   const [dccApplications, setDccApplications] = useState([]);
+  const [daemonStatus, setDaemonStatus] = useState({ checking: true, ok: false, detail: '' });
 
   const env = 'development';
 
@@ -20,7 +21,7 @@ export function Settings() {
       try {
         setLoading(true);
         setError('');
-        const doc = await api.get(`/settings/global?env=${encodeURIComponent(env)}`);
+        const doc = await api.get(`/api/v1/settings/global?env=${encodeURIComponent(env)}`);
         if (!mounted) return;
         setGlobalDoc(doc);
         const cas = doc?.extra?.cas || {};
@@ -46,6 +47,29 @@ export function Settings() {
     })();
     return () => {
       mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const daemonBase = import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
+    (async () => {
+      try {
+        let r = await fetch(`${daemonBase}/status`, { method: 'GET' });
+        if (!r.ok) {
+          r = await fetch(`${daemonBase}/health`, { method: 'GET' });
+        }
+        if (cancelled) return;
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        setDaemonStatus({ checking: false, ok: !!j.ok, detail: `${j.service || 'daemon'} @ ${daemonBase}` });
+      } catch (e) {
+        if (cancelled) return;
+        setDaemonStatus({ checking: false, ok: false, detail: String(e?.message || e) });
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -76,7 +100,7 @@ export function Settings() {
       setSaving(true);
       setError('');
       setSaved('');
-      const updated = await api.put(`/settings/global?env=${encodeURIComponent(env)}`, payload);
+      const updated = await api.put(`/api/v1/settings/global?env=${encodeURIComponent(env)}`, payload);
       setGlobalDoc(updated);
       const savedDcc = updated?.extra?.dcc_applications;
       if (Array.isArray(savedDcc) && savedDcc.length > 0) {
@@ -104,6 +128,18 @@ export function Settings() {
       <div>
         <h1 className="text-4xl font-serif font-bold text-foreground">Settings</h1>
         <p className="text-muted text-sm tracking-wide mt-1">Global and project configuration</p>
+      </div>
+
+      <div className="glass-panel p-6 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Bridge Daemon</h2>
+        <p className="text-sm text-muted">Web launch uses the local daemon first (`127.0.0.1:17373`).</p>
+        {daemonStatus.checking ? (
+          <p className="text-sm text-muted">Checking daemon status...</p>
+        ) : daemonStatus.ok ? (
+          <p className="text-sm text-emerald-400">Connected: {daemonStatus.detail}</p>
+        ) : (
+          <p className="text-sm text-amber-400">Not reachable: {daemonStatus.detail}</p>
+        )}
       </div>
 
       <div className="glass-panel p-6 flex flex-col gap-4">

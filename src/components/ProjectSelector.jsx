@@ -20,6 +20,15 @@ export function ProjectSelector() {
     return () => document.removeEventListener('click', onDocClick);
   }, []);
 
+  useEffect(() => {
+    if (isLoading) return;
+    if (!projectId) return;
+    // If the previously-selected project no longer exists, clear it so the UI recovers.
+    if (!projects.some((p) => p.id === projectId)) {
+      setProjectId(null);
+    }
+  }, [isLoading, projectId, projects, setProjectId]);
+
   const current = projects.find((p) => p.id === projectId);
 
   if (error) {

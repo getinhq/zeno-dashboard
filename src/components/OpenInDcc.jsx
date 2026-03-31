@@ -23,7 +23,7 @@ export function OpenInDcc({
 }) {
   const { data: globalDoc } = useQuery({
     queryKey: ['settings', 'global', 'development'],
-    queryFn: () => api.get('/settings/global?env=development'),
+    queryFn: () => api.get('/api/v1/settings/global?env=development'),
     staleTime: 60_000,
   });
 
@@ -105,11 +105,24 @@ export function OpenInDcc({
       try {
         const res = await api.post('/api/v1/launch-tokens', body, { headers });
         const token = res.token;
-        const url = `zeno://launch?token=${encodeURIComponent(token)}`;
-        window.location.href = url;
-        setMsg(
-          'If the DCC did not open, install Zeno Bridge and register the zeno:// handler. Rebuild the API image if launch returns 404.',
-        );
+        // Preferred dev/prod path: local bridge daemon on loopback.
+        // Falls back to custom URL scheme for desktop handler installations.
+        const daemonBase = import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
+        let launched = false;
+        try {
+          const r = await fetch(
+            `${daemonBase}/launch?token=${encodeURIComponent(token)}`,
+            { method: 'GET' },
+          );
+          launched = r.ok;
+        } catch (_) {
+          launched = false;
+        }
+        if (!launched) {
+          const url = `zeno://launch?token=${encodeURIComponent(token)}`;
+          window.location.href = url;
+        }
+        setMsg(launched ? 'Launch request sent to local bridge daemon.' : 'Launch request sent to Zeno Bridge.');
       } catch (err) {
         setMsg(String(err.message || err));
       } finally {
