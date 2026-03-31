@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useProjectContext } from '../contexts/ProjectContext';
-import { useAssets, useEpisodes, useSequences, useShots, useTasks } from '../api/hooks';
+import { useAssets, useEpisodes, useProject, useSequences, useShots, useTasks } from '../api/hooks';
 import { StatusPill } from '../components/StatusPill';
 import { CardSkeleton } from '../components/Loading';
 import { Link } from 'react-router-dom';
 import apiClient from '../api/client';
 import { parseCsv } from '../lib/csv';
+import { OpenInDcc } from '../components/OpenInDcc';
 import { useAssetVersions } from '../api/hooks';
 
 const TABS = [
@@ -25,6 +26,7 @@ export function Entities() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: assets = [], isLoading: assetsLoading } = useAssets(projectId, typeFilter ? { type: typeFilter } : {});
+  const { data: projectMeta } = useProject(projectId);
   const { data: episodes = [] } = useEpisodes(projectId);
   const { data: tasks = [] } = useTasks(projectId ? { project_id: projectId } : {});
 
@@ -109,6 +111,11 @@ export function Entities() {
                     <p className="text-xs text-muted mt-2">
                       {tasksForEntity(asset.id, null).length} task(s)
                     </p>
+                    <OpenInDcc
+                      projectId={projectId}
+                      projectCode={projectMeta?.code}
+                      assetId={asset.id}
+                    />
                   </div>
                 ))}
               </div>
