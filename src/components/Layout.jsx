@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { TopBar } from './TopBar';
 import { Sidebar } from './Sidebar';
+import { ProjectStatusBanner } from './ProjectStatusBanner';
 
 export function Layout() {
   useKeyboardShortcuts();
@@ -20,7 +21,7 @@ export function Layout() {
   }, []);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
+    <div className="dashboard-app flex h-screen overflow-hidden bg-background text-foreground selection:bg-primary selection:text-primary-foreground">
       {showShortcuts && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-label="Keyboard shortcuts">
           <div className="bg-background/95 inset-0 absolute" onClick={() => setShowShortcuts(false)} aria-hidden />
@@ -41,6 +42,7 @@ export function Layout() {
       <Sidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         <TopBar />
+        <ProjectStatusBanner />
         <main className="flex-1 overflow-y-auto w-full max-w-[1600px] mx-auto p-4 md:p-8">
           <Outlet />
         </main>

@@ -4,9 +4,14 @@ import { useProjectContext } from '../contexts/ProjectContext';
 import { Spinner } from './Loading';
 import { ChevronDown } from 'lucide-react';
 
+const INACTIVE_STATUSES = new Set(['completed', 'approved', 'archived']);
+
 export function ProjectSelector() {
   const { projectId, setProjectId } = useProjectContext();
-  const { data: projects = [], isLoading, error } = useProjects({ status: 'active' });
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const { data: projects = [], isLoading, error } = useProjects({
+    status: includeInactive ? 'all' : 'active',
+  });
   const createProject = useCreateProject();
   const [open, setOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -57,29 +62,52 @@ export function ProjectSelector() {
         <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border border-border bg-card shadow-xl max-h-64 overflow-auto">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-md border border-border bg-card shadow-xl max-h-64 overflow-y-auto overflow-x-hidden overscroll-contain">
           {projects.length === 0 && !isLoading ? (
-            <div className="px-3 py-4 text-muted text-sm">No active projects</div>
+            <div className="px-3 py-4 text-muted text-sm">
+              {includeInactive ? 'No projects' : 'No active projects'}
+            </div>
           ) : (
-            projects.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  setProjectId(p.id);
-                  setOpen(false);
-                }}
-                className={`block w-full px-3 py-2 text-left text-sm hover:bg-card-hover transition-colors ${p.id === projectId ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
-              >
-                {p.name} <span className="text-muted">({p.code})</span>
-              </button>
-            ))
+            projects.map((p) => {
+              const inactive = INACTIVE_STATUSES.has(p.status);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setProjectId(p.id);
+                    setOpen(false);
+                  }}
+                  className={`block w-full px-3 py-2 text-left text-sm hover:bg-card-hover transition-colors ${p.id === projectId ? 'bg-primary/10 text-primary' : 'text-foreground'}`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="truncate">
+                      {p.name} <span className="text-muted">({p.code})</span>
+                    </span>
+                    {inactive && (
+                      <span className="text-[10px] uppercase tracking-wider text-muted border border-border rounded px-1 py-0.5">
+                        {p.status}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              );
+            })
           )}
-          <div className="border-t border-border">
+          <div className="border-t border-border flex flex-col">
+            <label className="flex items-center gap-2 px-3 py-2 text-xs text-muted hover:bg-card-hover cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeInactive}
+                onChange={(e) => setIncludeInactive(e.target.checked)}
+                className="accent-primary"
+              />
+              Show completed / approved
+            </label>
             <button
               type="button"
               onClick={() => { setCreateOpen(true); setOpen(false); }}
-              className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-card-hover transition-colors"
+              className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-card-hover transition-colors border-t border-border"
             >
               + Create project
             </button>

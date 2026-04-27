@@ -4,6 +4,7 @@ import { useProjectContext } from '../contexts/ProjectContext';
 import { useProjects, useAssets } from '../api/hooks';
 import { api } from '../api/client';
 import { X } from 'lucide-react';
+import { ThemedSelect } from '../components/ThemedSelect';
 
 export function Publish() {
   const navigate = useNavigate();
@@ -71,29 +72,27 @@ export function Publish() {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-muted mb-1">Project</label>
-            <select
+            <ThemedSelect
               value={project}
-              onChange={(e) => setProject(e.target.value)}
-              className="w-full rounded-md border border-border bg-card-hover text-foreground px-4 py-2 text-sm focus:outline-none focus:border-primary"
-            >
-              <option value="">Select project</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} ({p.code})</option>
-              ))}
-            </select>
+              onChange={setProject}
+              className="w-full"
+              options={[
+                { value: '', label: 'Select project' },
+                ...projects.map((p) => ({ value: p.id, label: `${p.name} (${p.code})` })),
+              ]}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-muted mb-1">Asset</label>
-            <select
+            <ThemedSelect
               value={asset}
-              onChange={(e) => setAsset(e.target.value)}
-              className="w-full rounded-md border border-border bg-card-hover text-foreground px-4 py-2 text-sm focus:outline-none focus:border-primary"
-            >
-              <option value="">Select asset</option>
-              {(project ? assets : []).map((a) => (
-                <option key={a.id} value={a.id}>{a.name} ({a.code})</option>
-              ))}
-            </select>
+              onChange={setAsset}
+              className="w-full"
+              options={[
+                { value: '', label: 'Select asset' },
+                ...(project ? assets : []).map((a) => ({ value: a.id, label: `${a.name} (${a.code})` })),
+              ]}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-muted mb-1">Representation</label>

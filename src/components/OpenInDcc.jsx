@@ -1,12 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/client';
-
-const FALLBACK_DCC = [
-  { id: 'blender', label: 'Blender' },
-  { id: 'maya', label: 'Maya' },
-  { id: 'nuke', label: 'Nuke' },
-];
+import { ThemedSelect } from './ThemedSelect';
+import { launchWithContext, mintHeaders, normalizeDccOptions } from '../lib/dccLaunch';
 
 const STORAGE_KEY = 'zeno_last_dcc_selection';
 
@@ -18,12 +14,21 @@ export function OpenInDcc({
   projectId,
   projectCode,
   assetId,
+  shotId,
+  stage,
   intent = 'open_asset',
   className = '',
 }) {
   const { data: globalDoc } = useQuery({
     queryKey: ['settings', 'global', 'development'],
     queryFn: () => api.get('/api/v1/settings/global?env=development'),
+    staleTime: 60_000,
+  });
+  const { data: projectSettings } = useQuery({
+    queryKey: ['settings', 'project', projectId],
+    queryFn: () => api.get(`/api/v1/settings/project/${projectId}`),
+    enabled: !!projectId,
+    retry: false,
     staleTime: 60_000,
   });
 
@@ -34,14 +39,7 @@ export function OpenInDcc({
   }, [globalDoc]);
 
   const options = useMemo(() => {
-    if (apps.length === 0) {
-      return FALLBACK_DCC.map((o) => ({ kind: o.id, label: o.label, key: o.id }));
-    }
-    return apps.map((a, i) => ({
-      kind: String(a.dcc_kind || a.dcc || 'blender').toLowerCase(),
-      label: String(a.label),
-      key: `${a.dcc_kind || 'blender'}:${a.label}:${i}`,
-    }));
+    return normalizeDccOptions(apps);
   }, [apps]);
 
   const [selectionKey, setSelectionKey] = useState('');
@@ -63,13 +61,7 @@ export function OpenInDcc({
     return options[0]?.key || '';
   }, [options, selectionKey]);
 
-  const mintKey = import.meta.env.VITE_ZENO_LAUNCH_MINT_KEY;
-
-  const headers = useMemo(() => {
-    const h = {};
-    if (mintKey) h['X-Zeno-Launch-Mint-Key'] = mintKey;
-    return h;
-  }, [mintKey]);
+  const headers = useMemo(() => mintHeaders(), []);
 
   const open = useCallback(
     async (e) => {
@@ -89,39 +81,38 @@ export function OpenInDcc({
         (a, i) =>
           `${String(a.dcc_kind || 'blender')}:${String(a.label)}:${i}` === opt.key,
       );
+      // The project can pin a specific DCC per stage. The mapping value is
+      // either a label ("Blender 4.2" — matched against configured apps) or a
+      // legacy bare kind ("maya"). Labels win so different stages can target
+      // different versions of the same DCC.
+      const stageMapping = projectSettings?.extra?.stage_dcc_mapping || {};
+      const mapped = stage ? stageMapping[stage] : null;
+      const mappedApp = mapped
+        ? apps.find((a) => String(a.label || '').trim() === String(mapped).trim())
+        : null;
+      const finalKind = mappedApp
+        ? String(mappedApp.dcc_kind || mappedApp.dcc || opt.kind).toLowerCase()
+        : mapped || opt.kind;
+      const finalLabel = mappedApp
+        ? String(mappedApp.label)
+        : fromSettings
+          ? fromSettings.label
+          : null;
 
       const body = {
-        context: {
-          version: '1',
-          intent,
-          project_id: projectId,
-          project_code: projectCode || undefined,
-          asset_id: assetId || undefined,
-          representation: 'blend',
-          dcc: opt.kind,
-          ...(fromSettings ? { dcc_label: fromSettings.label } : {}),
-        },
+        version: '1',
+        intent,
+        project_id: projectId,
+        project_code: projectCode || undefined,
+        asset_id: assetId || undefined,
+        shot_id: shotId || undefined,
+        stage: stage || undefined,
+        representation: 'blend',
+        dcc: finalKind,
+        ...(finalLabel ? { dcc_label: finalLabel } : {}),
       };
       try {
-        const res = await api.post('/api/v1/launch-tokens', body, { headers });
-        const token = res.token;
-        // Preferred dev/prod path: local bridge daemon on loopback.
-        // Falls back to custom URL scheme for desktop handler installations.
-        const daemonBase = import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
-        let launched = false;
-        try {
-          const r = await fetch(
-            `${daemonBase}/launch?token=${encodeURIComponent(token)}`,
-            { method: 'GET' },
-          );
-          launched = r.ok;
-        } catch (_) {
-          launched = false;
-        }
-        if (!launched) {
-          const url = `zeno://launch?token=${encodeURIComponent(token)}`;
-          window.location.href = url;
-        }
+        const { launched } = await launchWithContext({ context: body, headers });
         setMsg(launched ? 'Launch request sent to local bridge daemon.' : 'Launch request sent to Zeno Bridge.');
       } catch (err) {
         setMsg(String(err.message || err));
@@ -129,7 +120,7 @@ export function OpenInDcc({
         setBusy(false);
       }
     },
-    [apps, assetId, effectiveKey, headers, intent, options, projectCode, projectId],
+    [apps, assetId, effectiveKey, headers, intent, options, projectCode, projectId, projectSettings, shotId, stage],
   );
 
   return (
@@ -142,17 +133,15 @@ export function OpenInDcc({
       <div className="flex flex-wrap items-center gap-2 mt-2">
         <label className="text-xs text-muted flex items-center gap-1">
           DCC
-          <select
+          <ThemedSelect
             value={effectiveKey}
-            onChange={(e) => setSelectionKey(e.target.value)}
-            className="bg-card-hover border border-border text-foreground text-xs rounded px-2 py-1 max-w-[220px]"
-          >
-            {options.map((o) => (
-              <option key={o.key} value={o.key}>
-                {apps.length ? o.label : `${o.label} (${o.kind})`}
-              </option>
-            ))}
-          </select>
+            onChange={setSelectionKey}
+            className="max-w-[220px] min-w-[180px]"
+            options={options.map((o) => ({
+              value: o.key,
+              label: apps.length ? o.label : `${o.label} (${o.kind})`,
+            }))}
+          />
         </label>
         <button
           type="button"

@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+/* DCC/Qt theme tokens are mirrored in zeno-plugin/zeno_ui/theme.json — keep colors in sync. */
 export default {
   content: [
     "./index.html",

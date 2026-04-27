@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
+import { ThemedSelect } from '../components/ThemedSelect';
+import { useProjectContext } from '../contexts/ProjectContext';
+
+const STAGES = ['Animatics', 'Layout', 'Animation', 'Lighting', 'Comp'];
 
 export function Settings() {
+  const { projectId } = useProjectContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -12,6 +17,14 @@ export function Settings() {
   const [localCasRoot, setLocalCasRoot] = useState('/tmp/zeno_cas');
   const [dccApplications, setDccApplications] = useState([]);
   const [daemonStatus, setDaemonStatus] = useState({ checking: true, ok: false, detail: '' });
+  const [projectSettings, setProjectSettings] = useState(null);
+  const [stageMapping, setStageMapping] = useState({
+    Animatics: 'maya',
+    Layout: 'maya',
+    Animation: 'maya',
+    Lighting: 'maya',
+    Comp: 'nuke',
+  });
 
   const env = 'development';
 
@@ -51,6 +64,31 @@ export function Settings() {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+    if (!projectId) {
+      setProjectSettings(null);
+      return undefined;
+    }
+    (async () => {
+      try {
+        const doc = await api.get(`/api/v1/settings/project/${projectId}`);
+        if (!mounted) return;
+        setProjectSettings(doc);
+        const mapping = doc?.extra?.stage_dcc_mapping;
+        if (mapping && typeof mapping === 'object') {
+          setStageMapping((prev) => ({ ...prev, ...mapping }));
+        }
+      } catch {
+        if (!mounted) return;
+        setProjectSettings(null);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [projectId]);
+
+  useEffect(() => {
     let cancelled = false;
     const daemonBase = import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
     (async () => {
@@ -72,6 +110,21 @@ export function Settings() {
       cancelled = true;
     };
   }, []);
+
+  // The stage-mapping dropdown is driven by the labels the user registered in
+  // "Application settings (DCC)". This lets a project pick e.g. "Blender 4.2"
+  // vs "Blender 3.6" per stage instead of a generic kind.
+  const dccLabelOptions = useMemo(() => {
+    const seen = new Set();
+    const opts = [];
+    for (const r of dccApplications) {
+      const label = String(r.label || '').trim();
+      if (!label || seen.has(label)) continue;
+      seen.add(label);
+      opts.push({ value: label, label });
+    }
+    return opts;
+  }, [dccApplications]);
 
   const payload = useMemo(() => {
     const resolution = globalDoc?.resolution || { width: 1920, height: 1080 };
@@ -118,6 +171,27 @@ export function Settings() {
       setSaved('Settings saved.');
     } catch (e) {
       setError(e?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSaveProjectMapping = async () => {
+    if (!projectId) return;
+    try {
+      setSaving(true);
+      setError('');
+      setSaved('');
+      await api.put(`/api/v1/settings/project/${projectId}`, {
+        overrides: projectSettings?.overrides || {},
+        extra: {
+          ...(projectSettings?.extra || {}),
+          stage_dcc_mapping: stageMapping,
+        },
+      });
+      setSaved('Project stage mapping saved.');
+    } catch (e) {
+      setError(e?.message || 'Failed to save project mapping');
     } finally {
       setSaving(false);
     }
@@ -220,20 +294,21 @@ export function Settings() {
                 </label>
                 <label className="md:col-span-2 flex flex-col gap-1">
                   <span className="text-xs text-muted">Kind</span>
-                  <select
-                    className="px-2 py-1.5 rounded bg-black/20 border border-white/20 text-sm"
+                  <ThemedSelect
                     value={row.dcc_kind}
-                    onChange={(e) => {
+                    onChange={(v) => {
                       const next = [...dccApplications];
-                      next[idx] = { ...row, dcc_kind: e.target.value };
+                      next[idx] = { ...row, dcc_kind: v };
                       setDccApplications(next);
                     }}
-                  >
-                    <option value="blender">blender</option>
-                    <option value="maya">maya</option>
-                    <option value="nuke">nuke</option>
-                    <option value="houdini">houdini</option>
-                  </select>
+                    className="w-full"
+                    options={[
+                      { value: 'blender', label: 'blender' },
+                      { value: 'maya', label: 'maya' },
+                      { value: 'nuke', label: 'nuke' },
+                      { value: 'houdini', label: 'houdini' },
+                    ]}
+                  />
                 </label>
                 <label className="md:col-span-6 flex flex-col gap-1">
                   <span className="text-xs text-muted">Executable path</span>
@@ -291,6 +366,60 @@ export function Settings() {
                 Click <strong className="text-foreground font-medium">Save settings</strong> after editing DCC rows. Refresh only shows data that was saved to the server.
               </p>
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="glass-panel p-6 flex flex-col gap-4">
+        <h2 className="text-xl font-semibold">Project Stage DCC Mapping</h2>
+        <p className="text-sm text-muted">
+          Pick the exact DCC application (by label, e.g. &quot;Blender 4.2&quot;) to launch for each
+          pipeline stage. Options come from the DCC labels you configured above, so different
+          stages can run against different DCC versions.
+        </p>
+        {!projectId ? (
+          <p className="text-sm text-muted">Select a project to edit stage mapping.</p>
+        ) : dccLabelOptions.length === 0 ? (
+          <p className="text-sm text-amber-400">
+            Configure at least one DCC application (with a label) above, then save, to enable
+            stage mapping here.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {STAGES.map((stage) => {
+              const current = stageMapping[stage] || '';
+              const isKnown = dccLabelOptions.some((o) => o.value === current);
+              const options = [
+                { value: '', label: '— Auto (project default) —' },
+                ...dccLabelOptions,
+                ...(current && !isKnown
+                  ? [{ value: current, label: `${current} (legacy)` }]
+                  : []),
+              ];
+              return (
+                <div
+                  key={stage}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center"
+                >
+                  <div className="text-sm text-foreground">{stage}</div>
+                  <ThemedSelect
+                    value={current}
+                    onChange={(value) =>
+                      setStageMapping((prev) => ({ ...prev, [stage]: value }))
+                    }
+                    options={options}
+                  />
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              className="px-4 py-2 rounded bg-primary text-white text-sm font-medium disabled:opacity-60 w-fit"
+              onClick={onSaveProjectMapping}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save project stage mapping'}
+            </button>
           </div>
         )}
       </div>

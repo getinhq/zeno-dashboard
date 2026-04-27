@@ -1,43 +1,71 @@
-import { Link } from 'react-router-dom';
-import { Bell, Search, Plus, User } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { User, LogOut } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
+import { NotificationsButton } from './NotificationsButton';
+import { useAuth } from '../contexts/AuthContext';
 
 export function TopBar() {
+  const { user, logout, enabled } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    function onDoc(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    }
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, []);
+
   return (
     <div className="h-16 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-6 sticky top-0 z-10 w-full shrink-0">
       <div className="flex items-center gap-6">
         <ProjectSelector />
       </div>
-
-      <div className="flex-1 max-w-xl px-4">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
-          <input
-            type="search"
-            placeholder="Search entities, tasks (Cmd+K)"
-            className="w-full bg-[#111] border border-border focus:border-primary text-foreground text-sm rounded-full pl-10 pr-4 py-2 transition-colors focus:outline-none placeholder:text-muted"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          className="relative text-muted hover:text-foreground transition-colors p-2 hover:bg-card-hover rounded-full"
-          title="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-card animate-pulse shadow-[0_0_8px_rgba(212,255,0,0.6)]" />
-        </button>
-        <Link
-          to="/publish"
-          className="btn-primary flex items-center gap-2 py-1.5 px-3 text-sm shadow-[0_0_15px_rgba(212,255,0,0.2)]"
-        >
-          <Plus className="w-4 h-4" />
-          Publish
-        </Link>
-        <div className="h-8 w-8 rounded-full bg-border border border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary transition-colors ml-2">
-          <User className="w-4 h-4 text-muted" />
+      <div className="flex items-center gap-3">
+        <NotificationsButton />
+        <div className="relative" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            className="h-8 flex items-center gap-2 rounded-full border border-border px-2 hover:border-primary transition-colors"
+            title={user?.username || 'Account'}
+          >
+            <span className="h-6 w-6 rounded-full bg-border flex items-center justify-center">
+              <User className="w-3.5 h-3.5 text-muted" />
+            </span>
+            <span className="hidden md:inline text-xs font-medium text-foreground max-w-[120px] truncate">
+              {user?.username || 'account'}
+            </span>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-56 rounded-md border border-border bg-card shadow-xl z-50">
+              <div className="p-3 border-b border-border">
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {user?.name || user?.username || 'Unknown'}
+                </p>
+                <p className="text-xs text-muted truncate">{user?.email || user?.username}</p>
+                {user?.app_role && (
+                  <span className="inline-block mt-1 text-[10px] uppercase tracking-wider text-primary border border-primary/40 rounded px-1.5 py-0.5">
+                    {user.app_role}
+                  </span>
+                )}
+              </div>
+              {enabled && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  className="w-full px-3 py-2 text-sm text-left text-foreground hover:bg-card-hover flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign out
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
