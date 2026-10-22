@@ -30,7 +30,11 @@ export async function launchWithContext({ context, headers }) {
   const daemonBase = import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
   let launched = false;
   try {
-    const r = await fetch(`${daemonBase}/launch?token=${encodeURIComponent(token)}`, { method: 'GET' });
+    const r = await fetch(`${daemonBase}/launch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
     launched = r.ok;
   } catch (_) {
     launched = false;
