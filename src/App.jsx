@@ -23,6 +23,7 @@ import { NewProject } from './pages/NewProject';
 import { Breakdown } from './pages/Breakdown';
 import { Schedule } from './pages/Schedule';
 import { Account } from './pages/Account';
+import { Guide } from './pages/Guide';
 import { GettingStarted } from './pages/GettingStarted';
 
 const queryClient = new QueryClient({
@@ -56,6 +57,7 @@ function App() {
                 <Route path="breakdown" element={<Breakdown />} />
                 <Route path="schedule" element={<Schedule />} />
                 <Route path="account" element={<Account />} />
+                <Route path="guide" element={<Guide />} />
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="task/:id" element={<TaskDetail />} />
                 <Route path="tasks/:id" element={<TaskDetail />} />

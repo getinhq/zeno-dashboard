@@ -12,6 +12,7 @@ import {
   LayoutTemplate,
   Grid3x3,
   CalendarRange,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessSettings, isManagement } from '../lib/permissions';
@@ -36,6 +37,7 @@ export function Sidebar() {
     links.push({ to: '/team', label: 'Team', icon: Users });
   }
   if (canAccessSettings(user)) links.push({ to: '/settings', label: 'Settings', icon: Settings });
+  links.push({ to: '/guide', label: 'Guide', icon: BookOpen });
 
   return (
     <div className="w-16 md:w-64 bg-card border-r border-border h-full flex flex-col py-6 transition-all duration-300 shrink-0">
