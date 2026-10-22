@@ -479,6 +479,11 @@ export function Guide() {
             </div>
           </Figure>
           <p>
+            Chunking is configurable per file type in <b>Settings → Storage workflow</b> (pipeline role): turn it off entirely, or
+            store some formats (say <code>.fbx</code>) as whole files while their algorithm matures. Each type shows its status
+            (stable, beta, experimental), and every version records which strategy it used.
+          </p>
+          <p>
             To get feedback, submit a playblast or render for the task: that is what supervisors watch and approve (next
             section). The task status follows their decision.
           </p>

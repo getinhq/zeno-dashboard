@@ -3,6 +3,8 @@ import { api } from '../api/client';
 import { ThemedSelect } from '../components/ThemedSelect';
 import { useProjectContext } from '../contexts/ProjectContext';
 import { useAuth } from '../contexts/AuthContext';
+import { StorageWorkflow } from '../components/StorageWorkflow';
+import { hasRole } from '../lib/permissions';
 
 const STAGES = ['Animatics', 'Layout', 'Animation', 'Lighting', 'Comp'];
 
@@ -277,6 +279,8 @@ export function Settings() {
           </div>
         )}
       </div>
+
+      <StorageWorkflow canEdit={hasRole(user, 'pipeline')} />
 
       <div className="glass-panel p-6 flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Application settings (DCC)</h2>

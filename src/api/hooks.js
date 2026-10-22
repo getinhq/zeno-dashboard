@@ -883,3 +883,16 @@ export function useRevokeReviewShare() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['review_shares'] }),
   });
 }
+
+// —— Storage workflow ——
+export function useStoragePolicy() {
+  return useQuery({ queryKey: ['storage_policy'], queryFn: () => api.get('/api/v1/storage-policy') });
+}
+
+export function useSaveStoragePolicy() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => (body === 'reset' ? api.post('/api/v1/storage-policy/reset', {}) : api.put('/api/v1/storage-policy', body)),
+    onSuccess: (data) => qc.setQueryData(['storage_policy'], data),
+  });
+}
