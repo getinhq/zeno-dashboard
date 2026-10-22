@@ -9,6 +9,25 @@ const inputClass =
   'bg-[#111] border border-border focus:border-primary text-foreground text-sm rounded-md px-3 py-2 outline-none transition-colors';
 
 const ACCEPT = '.mp4,.mov,.m4v,.mkv,.webm,.avi,.mxf,.png,.jpg,.jpeg,.tif,.tiff,.exr,.dpx,.tga,.webp';
+const IMAGE_RE = /\.(png|jpe?g|tiff?|exr|dpx|tga|webp|bmp)$/i;
+
+/** Frame number from a sequence file name (`sh010.1012.exr` -> 1012), or null. */
+export function frameNumber(name) {
+  const m = /(\d+)(?=\.[A-Za-z0-9]+$)/.exec(name);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+/** `{ count, first, last, pattern, missing }` when `files` form an image sequence, else null. */
+export function describeSequence(files) {
+  if (files.length < 2 || !files.every((f) => IMAGE_RE.test(f.name))) return null;
+  const numbers = files.map((f) => frameNumber(f.name));
+  if (numbers.some((n) => n === null)) return { error: 'Every file name needs a frame number, e.g. sh010.1001.exr' };
+  if (new Set(numbers).size !== numbers.length) return { error: 'Two files have the same frame number' };
+  const first = Math.min(...numbers);
+  const last = Math.max(...numbers);
+  const pattern = files[0].name.replace(/(\d+)(?=\.[A-Za-z0-9]+$)/, (d) => '#'.repeat(d.length));
+  return { count: files.length, first, last, pattern, missing: last - first + 1 - files.length };
+}
 
 /** Upload a playblast/render/still as the next revision of a task. */
 export function SubmitDialog({ projectId, defaultTaskId = '', onClose }) {
@@ -17,7 +36,7 @@ export function SubmitDialog({ projectId, defaultTaskId = '', onClose }) {
   const { data: tasks = [] } = useTasks({ project_id: projectId }, { enabled: !!projectId });
   const submit = useSubmitReview();
   const [taskId, setTaskId] = useState(defaultTaskId);
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [frameStart, setFrameStart] = useState('1001');
   const [fps, setFps] = useState('');
   const [description, setDescription] = useState('');
@@ -40,16 +59,26 @@ export function SubmitDialog({ projectId, defaultTaskId = '', onClose }) {
     ];
   }, [tasks, user?.id]);
 
+  const file = files[0] || null;
+  const sequence = useMemo(() => describeSequence(files), [files]);
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!taskId || !file) return;
+    if (!taskId || !file || sequence?.error) return;
     setProgress(0);
-    const item = await submit.mutateAsync({ taskId, file, frameStart, fps, description, onProgress: setProgress });
+    const item = await submit.mutateAsync({
+      taskId,
+      file,
+      files: sequence ? files : null,
+      frameStart,
+      fps: sequence ? fps || '24' : fps,
+      description,
+      onProgress: setProgress,
+    });
     onClose();
     navigate(`/review/${item.id}`);
   };
 
-  const isVideo = file && !/\.(png|jpe?g|tiff?|exr|dpx|tga|webp)$/i.test(file.name);
+  const isVideo = file && !sequence && !IMAGE_RE.test(file.name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-label="Submit for review">
@@ -77,16 +106,48 @@ export function SubmitDialog({ projectId, defaultTaskId = '', onClose }) {
           onDrop={(e) => {
             e.preventDefault();
             setDragOver(false);
-            if (e.dataTransfer.files?.[0]) setFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files?.length) setFiles([...e.dataTransfer.files]);
           }}
         >
           <UploadCloud className="w-7 h-7 text-muted" />
-          <span className="text-sm text-foreground">{file ? file.name : 'Drop a playblast, render or still here'}</span>
-          <span className="text-xs text-muted">
-            {file ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : 'MP4, MOV, MKV, WebM · PNG, JPEG, TIFF, EXR'}
+          <span className="text-sm text-foreground text-center">
+            {sequence && !sequence.error
+              ? `${sequence.pattern} · ${sequence.count} frames (${sequence.first}–${sequence.last})`
+              : file
+                ? file.name
+                : 'Drop a playblast, render or still, or all frames of an image sequence'}
           </span>
-          <input type="file" accept={ACCEPT} className="sr-only" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+          <span className="text-xs text-muted text-center">
+            {file
+              ? `${(files.reduce((n, f) => n + f.size, 0) / 1024 / 1024).toFixed(1)} MB`
+              : 'MP4, MOV, MKV, WebM · PNG, JPEG, TIFF, EXR (single image or sequence)'}
+          </span>
+          <input
+            type="file"
+            accept={ACCEPT}
+            multiple
+            className="sr-only"
+            onChange={(e) => setFiles(e.target.files ? [...e.target.files] : [])}
+          />
         </label>
+
+        {sequence?.error && <p className="text-sm text-danger">{sequence.error}</p>}
+        {sequence && !sequence.error && (
+          <div className="flex flex-col gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-muted">Frame rate</span>
+              <select className={inputClass} value={fps || '24'} onChange={(e) => setFps(e.target.value)}>
+                {[['24000/1001', '23.976'], ['24', '24'], ['25', '25'], ['30000/1001', '29.97'], ['30', '30'], ['48', '48'], ['50', '50'], ['60', '60']].map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
+                ))}
+              </select>
+            </label>
+            <p className="text-[11px] text-muted">
+              Frames are stored one by one: frames identical to an earlier revision are kept once.
+              {sequence.missing > 0 && ` ${sequence.missing} frame(s) are missing; the previous frame is held.`}
+            </p>
+          </div>
+        )}
 
         {isVideo && (
           <div className="grid grid-cols-2 gap-3">
@@ -129,7 +190,7 @@ export function SubmitDialog({ projectId, defaultTaskId = '', onClose }) {
         )}
         {submit.error && <p className="text-sm text-danger">{submit.error.message}</p>}
 
-        <button type="submit" className="btn-primary text-sm" disabled={!taskId || !file || submit.isPending}>
+        <button type="submit" className="btn-primary text-sm" disabled={!taskId || !file || !!sequence?.error || submit.isPending}>
           Submit for review
         </button>
       </form>

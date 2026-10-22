@@ -53,3 +53,21 @@ describe('annotations', () => {
     expect(out[out.length - 1][0]).toBeCloseTo(199 / 100000, 4);
   });
 });
+
+import { describeSequence, frameNumber } from '../components/review/SubmitDialog';
+
+describe('image sequence detection', () => {
+  const f = (name) => ({ name, size: 1 });
+  it('reads frame numbers from names', () => {
+    expect(frameNumber('sh010.1012.exr')).toBe(1012);
+    expect(frameNumber('frame_0007.png')).toBe(7);
+    expect(frameNumber('v2_sh010_1012.png')).toBe(1012);
+    expect(frameNumber('cover.png')).toBe(null);
+  });
+  it('describes a sequence and its gaps', () => {
+    const s = describeSequence([f('a.1001.png'), f('a.1002.png'), f('a.1004.png')]);
+    expect(s).toEqual({ count: 3, first: 1001, last: 1004, pattern: 'a.####.png', missing: 1 });
+    expect(describeSequence([f('a.mov')])).toBe(null);
+    expect(describeSequence([f('a.1.png'), f('b.png')]).error).toMatch(/frame number/);
+  });
+});

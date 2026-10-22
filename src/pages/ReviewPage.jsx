@@ -140,6 +140,7 @@ export function ReviewPage() {
       </div>
 
       {item.description && <p className="text-sm text-muted -mt-1">{item.description}</p>}
+      {item.sequence && <SequenceStats seq={item.sequence} />}
 
       {deciding && (
         <div className="glass-panel p-3 flex flex-col gap-2 border-primary/40">
@@ -218,6 +219,32 @@ export function ReviewPage() {
 
       {sharing && <ShareDialog projectId={item.project_id} itemIds={[item.id]} title={`${item.task.entity_label} ${item.label}`} onClose={() => setSharing(false)} />}
     </div>
+  );
+}
+
+function formatBytes(n) {
+  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB`;
+  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(n / 1024))} KB`;
+}
+
+/** Image-sequence storage: how much of this revision was already stored by earlier ones. */
+function SequenceStats({ seq }) {
+  const pct = Math.round((seq.saved_ratio || 0) * 100);
+  return (
+    <p className="text-xs text-muted -mt-1 flex flex-wrap gap-x-3 gap-y-1 items-center">
+      <span className="font-mono text-foreground">{seq.pattern}</span>
+      <span>{seq.frames} frames</span>
+      {seq.reused_frames > 0 ? (
+        <span className="text-success">
+          {seq.reused_frames} unchanged since {seq.reused_from.join(', ')} · stored {formatBytes(seq.new_bytes)} new of{' '}
+          {formatBytes(seq.total_bytes)} ({pct}% saved)
+        </span>
+      ) : (
+        <span>{formatBytes(seq.new_bytes)} stored{seq.unique_frames < seq.frames ? ` (${seq.frames - seq.unique_frames} repeated frames kept once)` : ''}</span>
+      )}
+      {seq.missing_frames?.length > 0 && <span className="text-warning">missing frames held: {seq.missing_frames.slice(0, 8).join(', ')}{seq.missing_frames.length > 8 ? '…' : ''}</span>}
+    </p>
   );
 }
 

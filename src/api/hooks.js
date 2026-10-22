@@ -793,9 +793,16 @@ function useReviewNotesCache() {
 export function useSubmitReview() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, file, frameStart, fps, description, onProgress }) => {
+    mutationFn: ({ taskId, file, files, frameStart, fps, description, onProgress }) => {
       const fd = new FormData();
       fd.append('task_id', taskId);
+      if (files?.length > 1) {
+        // Image sequence: one part per frame; the server stores each frame once by hash.
+        files.forEach((f) => fd.append('files', f));
+        if (fps) fd.append('fps', String(fps));
+        if (description) fd.append('description', description);
+        return api.uploadWithProgress('/api/v1/reviews/items/sequence/upload', fd, onProgress);
+      }
       fd.append('file', file);
       if (frameStart !== '' && frameStart != null) fd.append('frame_start', String(frameStart));
       if (fps) fd.append('fps', String(fps));

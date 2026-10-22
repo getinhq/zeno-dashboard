@@ -546,6 +546,14 @@ export function Guide() {
             <li>Submit with your scene&apos;s frame numbers (e.g. starting at 1001). Blender does this for you; on upload, set <b>First frame number</b>.</li>
           </ul>
 
+          <h3 className="text-lg font-serif text-foreground mt-2">Image sequences: unchanged frames are stored once</h3>
+          <p>
+            Select or drop all frames of a render (e.g. <code>sh010.1001.exr</code> … <code>sh010.1072.exr</code>), or tick <b>As image
+            sequence</b> in Blender&apos;s Submit for Review. Each frame is stored by its content, so when v002 only re-renders frames
+            1018–1024, the other frames are not uploaded or stored again; the review page shows how much was reused. Use movies for
+            quick playblasts (much smaller), sequences for renders you keep anyway.
+          </p>
+
           <h3 className="text-lg font-serif text-foreground mt-2">Compare versions</h3>
           <p>
             Pick <b>Wipe</b>, <b>Side by side</b> or <b>Flip A/B</b> under the player. B defaults to the last approved revision (or the
