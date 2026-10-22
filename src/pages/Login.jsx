@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Navigate } from 'react-router-dom';
 import { LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAuthConfig } from './Signup';
 
 export function Login() {
   const { isAuthenticated, login, enabled, loaded } = useAuth();
+  const { data: authConfig } = useAuthConfig();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -48,7 +50,7 @@ export function Login() {
 
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-xs uppercase tracking-wider text-muted">Username</span>
+            <span className="text-xs uppercase tracking-wider text-muted">Username or email</span>
             <input
               type="text"
               autoComplete="username"
@@ -99,7 +101,17 @@ export function Login() {
         </form>
 
         <p className="text-xs text-muted text-center">
-          Need an account? Ask a Pipeline user to create one.
+          {authConfig?.signup_enabled ? (
+            <>
+              New to Zeno?{' '}
+              <Link to="/signup" className="text-primary hover:underline">
+                Create a studio
+              </Link>
+              {' · '}Joining a team? Use the invite link you were sent.
+            </>
+          ) : (
+            'Need an account? Ask your studio admin for an invite link.'
+          )}
         </p>
       </div>
     </div>

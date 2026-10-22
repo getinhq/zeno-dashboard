@@ -8,15 +8,22 @@ import {
   BarChart3,
   Settings,
   Bug,
+  Users,
+  LayoutTemplate,
+  Grid3x3,
+  CalendarRange,
+  BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { canAccessSettings } from '../lib/permissions';
+import { canAccessSettings, isManagement } from '../lib/permissions';
 
 const baseLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
   { to: '/entities', label: 'Entities', icon: FolderTree },
+  { to: '/breakdown', label: 'Breakdown', icon: Grid3x3 },
   { to: '/explorer', label: 'Explorer', icon: Compass },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { to: '/schedule', label: 'Schedule', icon: CalendarRange },
   { to: '/reviews', label: 'Reviews', icon: PlaySquare },
   { to: '/issues', label: 'Issues', icon: Bug },
   { to: '#', label: 'Reports', icon: BarChart3 },
@@ -24,9 +31,13 @@ const baseLinks = [
 
 export function Sidebar() {
   const { user } = useAuth();
-  const links = canAccessSettings(user)
-    ? [...baseLinks, { to: '/settings', label: 'Settings', icon: Settings }]
-    : baseLinks;
+  const links = [...baseLinks];
+  if (isManagement(user)) {
+    links.push({ to: '/templates', label: 'Templates', icon: LayoutTemplate });
+    links.push({ to: '/team', label: 'Team', icon: Users });
+  }
+  if (canAccessSettings(user)) links.push({ to: '/settings', label: 'Settings', icon: Settings });
+  links.push({ to: '/guide', label: 'Guide', icon: BookOpen });
 
   return (
     <div className="w-16 md:w-64 bg-card border-r border-border h-full flex flex-col py-6 transition-all duration-300 shrink-0">

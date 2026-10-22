@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, LogOut, KeyRound } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { NotificationsButton } from './NotificationsButton';
 import { useAuth } from '../contexts/AuthContext';
@@ -45,12 +46,25 @@ export function TopBar() {
                   {user?.name || user?.username || 'Unknown'}
                 </p>
                 <p className="text-xs text-muted truncate">{user?.email || user?.username}</p>
+                {user?.organization?.name && (
+                  <p className="text-xs text-foreground/80 truncate mt-1" title="Studio">
+                    {user.organization.name}
+                  </p>
+                )}
                 {user?.app_role && (
                   <span className="inline-block mt-1 text-[10px] uppercase tracking-wider text-primary border border-primary/40 rounded px-1.5 py-0.5">
                     {user.app_role}
                   </span>
                 )}
               </div>
+              <Link
+                to="/account"
+                onClick={() => setMenuOpen(false)}
+                className="w-full px-3 py-2 text-sm text-left text-foreground hover:bg-card-hover flex items-center gap-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                Account &amp; API tokens
+              </Link>
               {enabled && (
                 <button
                   type="button"

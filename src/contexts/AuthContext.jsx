@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api, setAuthProvider } from '../api/client';
 
 const STORAGE_KEY = 'zeno_auth_v1';
@@ -29,6 +30,7 @@ function _saveStored(state) {
 }
 
 export function AuthProvider({ children }) {
+  const queryClient = useQueryClient();
   const [loaded, setLoaded] = useState(false);
   const [authState, setAuthState] = useState(() => _loadStored());
   const stateRef = useRef(authState);
@@ -84,26 +86,39 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (username, password) => {
-    const data = await api.post('/api/v1/auth/login', { username, password });
+  // Adopt a token response from /auth/login, /auth/signup or invite acceptance.
+  const startSession = useCallback((data) => {
     const next = {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       user: data.user,
     };
+    // Cached queries belong to the previous account (possibly another organization).
+    queryClient.clear();
     setState(next);
     return next.user;
-  }, [setState]);
+  }, [setState, queryClient]);
+
+  const login = useCallback(async (username, password) => {
+    const data = await api.post('/api/v1/auth/login', { username, password });
+    return startSession(data);
+  }, [startSession]);
+
+  const signup = useCallback(async (body) => {
+    const data = await api.post('/api/v1/auth/signup', body);
+    return startSession(data);
+  }, [startSession]);
 
   const logout = useCallback(async () => {
     const refresh = stateRef.current?.refreshToken;
     clearAuth();
+    queryClient.clear();
     if (refresh) {
       try {
         await api.post('/api/v1/auth/logout', { refresh_token: refresh });
       } catch (_) {}
     }
-  }, [clearAuth]);
+  }, [clearAuth, queryClient]);
 
   const stubUser = useMemo(
     () => ({
@@ -113,6 +128,7 @@ export function AuthProvider({ children }) {
       name: 'Dev',
       role: null,
       app_role: 'pipeline',
+      organization: null,
     }),
     [],
   );
@@ -125,9 +141,11 @@ export function AuthProvider({ children }) {
       isAuthenticated: AUTH_ENABLED ? Boolean(authState?.accessToken && authState?.user) : true,
       loaded,
       login,
+      signup,
+      startSession,
       logout,
     };
-  }, [authState, loaded, login, logout, stubUser]);
+  }, [authState, loaded, login, signup, startSession, logout, stubUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

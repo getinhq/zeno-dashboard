@@ -1,14 +1,22 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProject } from '../api/hooks';
+import { useAuth } from './AuthContext';
 
 const ProjectContext = createContext(null);
 
 const INACTIVE_STATUSES = new Set(['completed', 'approved', 'archived']);
 
-const PROJECT_STORAGE_KEY = 'zeno_project_id';
+const LEGACY_PROJECT_STORAGE_KEY = 'zeno_project_id';
 
-function _readStoredProjectId() {
+// The selected project is remembered per organization so switching accounts never
+// points the dashboard at a project the new account cannot see.
+function _storageKey(orgId) {
+  return orgId ? `${LEGACY_PROJECT_STORAGE_KEY}:${orgId}` : LEGACY_PROJECT_STORAGE_KEY;
+}
+
+function _readStoredProjectId(orgId) {
+  const PROJECT_STORAGE_KEY = _storageKey(orgId);
   try {
     const fromLocal = localStorage.getItem(PROJECT_STORAGE_KEY);
     if (fromLocal) return fromLocal;
@@ -28,8 +36,20 @@ function _readStoredProjectId() {
 }
 
 export function ProjectProvider({ children }) {
+  const { user } = useAuth();
+  const orgId = user?.organization?.id || null;
+  // Remount per organization so the stored selection is re-read for the new org.
+  return (
+    <OrgProjectProvider key={orgId || 'none'} orgId={orgId}>
+      {children}
+    </OrgProjectProvider>
+  );
+}
+
+function OrgProjectProvider({ orgId, children }) {
   const qc = useQueryClient();
-  const [projectId, setProjectIdState] = useState(() => _readStoredProjectId());
+  const PROJECT_STORAGE_KEY = _storageKey(orgId);
+  const [projectId, setProjectIdState] = useState(() => _readStoredProjectId(orgId));
 
   const setProjectId = useCallback(
     (id) => {
@@ -43,7 +63,7 @@ export function ProjectProvider({ children }) {
       // Force any consumers reading old project data to refetch for the new one.
       qc.invalidateQueries({ queryKey: ['projects'] });
     },
-    [qc],
+    [qc, PROJECT_STORAGE_KEY],
   );
 
   const { data: project } = useProject(projectId);

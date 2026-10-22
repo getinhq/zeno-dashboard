@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useCreateProject, useProjects } from '../api/hooks';
+import { useNavigate } from 'react-router-dom';
+import { useProjects } from '../api/hooks';
 import { useProjectContext } from '../contexts/ProjectContext';
 import { Spinner } from './Loading';
 import { ChevronDown } from 'lucide-react';
@@ -9,12 +10,11 @@ const INACTIVE_STATUSES = new Set(['completed', 'approved', 'archived']);
 export function ProjectSelector() {
   const { projectId, setProjectId } = useProjectContext();
   const [includeInactive, setIncludeInactive] = useState(false);
-  const { data: projects = [], isLoading, error } = useProjects({
+  const { data: projects = [], isLoading, isFetching, error } = useProjects({
     status: includeInactive ? 'all' : 'active',
   });
-  const createProject = useCreateProject();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -26,13 +26,18 @@ export function ProjectSelector() {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!projectId) return;
+    // Wait for any refetch: a just-created project is selected before the list includes it.
+    if (isLoading || isFetching) return;
+    if (!projectId) {
+      // Nothing chosen yet (new studio, new browser): open the first active project.
+      if (projects.length) setProjectId(projects[0].id);
+      return;
+    }
     // If the previously-selected project no longer exists, clear it so the UI recovers.
     if (!projects.some((p) => p.id === projectId)) {
       setProjectId(null);
     }
-  }, [isLoading, projectId, projects, setProjectId]);
+  }, [isLoading, isFetching, projectId, projects, setProjectId]);
 
   const current = projects.find((p) => p.id === projectId);
 
@@ -106,7 +111,7 @@ export function ProjectSelector() {
             </label>
             <button
               type="button"
-              onClick={() => { setCreateOpen(true); setOpen(false); }}
+              onClick={() => { setOpen(false); navigate('/projects/new'); }}
               className="block w-full px-3 py-2 text-left text-sm text-foreground hover:bg-card-hover transition-colors border-t border-border"
             >
               + Create project
@@ -115,70 +120,6 @@ export function ProjectSelector() {
         </div>
       )}
 
-      {createOpen && (
-        <CreateProjectModal
-          onClose={() => setCreateOpen(false)}
-          onCreate={async ({ name, code }) => {
-            const p = await createProject.mutateAsync({ name, code, status: 'active' });
-            setProjectId(p.id);
-            setCreateOpen(false);
-          }}
-          busy={createProject.isPending}
-          errorMessage={createProject.error?.message || ''}
-        />
-      )}
-    </div>
-  );
-}
-
-function CreateProjectModal({ onClose, onCreate, busy, errorMessage }) {
-  const [name, setName] = useState('');
-  const [code, setCode] = useState('');
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="bg-background/80 fixed inset-0 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md bg-card border border-border shadow-xl rounded-lg overflow-hidden">
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h3 className="text-lg font-serif font-semibold text-foreground">Create project</h3>
-          <button type="button" onClick={onClose} className="text-muted hover:text-foreground p-1 rounded hover:bg-card-hover transition-colors">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-        <div className="p-4 space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-muted mb-1">Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-border bg-card-hover text-foreground px-3 py-2 text-sm focus:outline-none focus:border-primary"
-              placeholder="My Project"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-muted mb-1">Code</label>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full rounded-md border border-border bg-card-hover text-foreground px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
-              placeholder="BLT2"
-            />
-          </div>
-          {errorMessage ? <p className="text-danger text-sm break-words">{errorMessage}</p> : null}
-        </div>
-        <div className="p-4 border-t border-border flex justify-end gap-2">
-          <button type="button" className="btn-secondary px-3 py-1.5 text-sm" onClick={onClose}>Cancel</button>
-          <button
-            type="button"
-            className="btn-primary px-3 py-1.5 text-sm disabled:opacity-50"
-            onClick={() => onCreate({ name: name.trim(), code: code.trim() })}
-            disabled={busy || !name.trim() || !code.trim()}
-          >
-            {busy ? 'Creating…' : 'Create'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

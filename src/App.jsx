@@ -10,11 +10,23 @@ import { Tasks } from './pages/Tasks';
 import { TaskDetail } from './pages/TaskDetail';
 import { Entities } from './pages/Entities';
 import { Reviews } from './pages/Reviews';
+import { ReviewPage } from './pages/ReviewPage';
+import { PublicReview } from './pages/PublicReview';
 import { Settings } from './pages/Settings';
 import { Publish } from './pages/Publish';
 import { Explorer } from './pages/Explorer';
 import { Issues } from './pages/Issues';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
+import { AcceptInvite } from './pages/AcceptInvite';
+import { Team } from './pages/Team';
+import { Templates } from './pages/Templates';
+import { NewProject } from './pages/NewProject';
+import { Breakdown } from './pages/Breakdown';
+import { Schedule } from './pages/Schedule';
+import { Account } from './pages/Account';
+import { Guide } from './pages/Guide';
+import { GettingStarted } from './pages/GettingStarted';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +42,9 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
+              <Route path="/r/:token" element={<PublicReview />} />
               <Route
                 path="/"
                 element={(
@@ -42,10 +57,15 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="entities" element={<Entities />} />
                 <Route path="explorer" element={<Explorer />} />
+                <Route path="breakdown" element={<Breakdown />} />
+                <Route path="schedule" element={<Schedule />} />
+                <Route path="account" element={<Account />} />
+                <Route path="guide" element={<Guide />} />
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="task/:id" element={<TaskDetail />} />
                 <Route path="tasks/:id" element={<TaskDetail />} />
                 <Route path="reviews" element={<Reviews />} />
+                <Route path="review/:itemId" element={<ReviewPage />} />
                 <Route path="issues" element={<Issues />} />
                 <Route
                   path="settings"
@@ -56,6 +76,31 @@ function App() {
                   )}
                 />
                 <Route path="publish" element={<Publish />} />
+                <Route path="getting-started" element={<GettingStarted />} />
+                <Route
+                  path="projects/new"
+                  element={(
+                    <RequireRole roles={['pipeline', 'supervisor', 'production']}>
+                      <NewProject />
+                    </RequireRole>
+                  )}
+                />
+                <Route
+                  path="templates"
+                  element={(
+                    <RequireRole roles={['pipeline', 'supervisor', 'production']}>
+                      <Templates />
+                    </RequireRole>
+                  )}
+                />
+                <Route
+                  path="team"
+                  element={(
+                    <RequireRole roles={['pipeline', 'supervisor', 'production']}>
+                      <Team />
+                    </RequireRole>
+                  )}
+                />
               </Route>
             </Routes>
           </BrowserRouter>
