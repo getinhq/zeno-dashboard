@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import App from './App.jsx'
 
 describe('App', () => {
-  it('renders dashboard title', () => {
+  it('shows the sign-in screen when there is no session', async () => {
     render(<App />)
-    expect(screen.getByText(/Zeno Dashboard/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Sign in to continue/i)).toBeTruthy()
   })
 })

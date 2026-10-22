@@ -16,6 +16,9 @@ import { Explorer } from './pages/Explorer';
 import { Issues } from './pages/Issues';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
+import { AcceptInvite } from './pages/AcceptInvite';
+import { Team } from './pages/Team';
+import { GettingStarted } from './pages/GettingStarted';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +35,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
               <Route
                 path="/"
                 element={(
@@ -58,6 +62,15 @@ function App() {
                   )}
                 />
                 <Route path="publish" element={<Publish />} />
+                <Route path="getting-started" element={<GettingStarted />} />
+                <Route
+                  path="team"
+                  element={(
+                    <RequireRole roles={['pipeline', 'supervisor', 'production']}>
+                      <Team />
+                    </RequireRole>
+                  )}
+                />
               </Route>
             </Routes>
           </BrowserRouter>

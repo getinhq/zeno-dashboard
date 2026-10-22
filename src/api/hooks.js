@@ -227,7 +227,7 @@ export function useUpdateShot(shotId) {
 // —— Tasks ——
 /** refetchInterval: optional ms for polling (realtime-ready). Pass 0 to disable. */
 export function useTasks(filters = {}, options = {}) {
-  const { refetchInterval } = options;
+  const { refetchInterval, enabled } = options;
   const search = new URLSearchParams();
   if (filters.project_id) search.set('project_id', filters.project_id);
   if (filters.asset_id) search.set('asset_id', filters.asset_id);
@@ -241,6 +241,7 @@ export function useTasks(filters = {}, options = {}) {
     queryKey: ['tasks', filters],
     queryFn: () => api.get(`/api/v1/tasks${qs ? `?${qs}` : ''}`),
     ...(refetchInterval != null && { refetchInterval }),
+    ...(enabled != null && { enabled }),
   });
 }
 
@@ -509,6 +510,64 @@ export function useUploadIssueAttachment(issueId) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['issue', issueId] });
       qc.invalidateQueries({ queryKey: ['issues'] });
+    },
+  });
+}
+
+// —— Organization / team ——
+export function useOrganization() {
+  return useQuery({
+    queryKey: ['organization'],
+    queryFn: () => api.get('/api/v1/organization'),
+  });
+}
+
+export function useUpdateOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.patch('/api/v1/organization', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['organization'] }),
+  });
+}
+
+export function useInvites() {
+  return useQuery({
+    queryKey: ['invites'],
+    queryFn: () => api.get('/api/v1/invites'),
+  });
+}
+
+export function useCreateInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.post('/api/v1/invites', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invites'] }),
+  });
+}
+
+export function useRegenerateInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteId) => api.post(`/api/v1/invites/${inviteId}/regenerate`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invites'] }),
+  });
+}
+
+export function useRevokeInvite() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (inviteId) => api.delete(`/api/v1/invites/${inviteId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invites'] }),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, body }) => api.patch(`/api/v1/users/${userId}`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['organization'] });
     },
   });
 }
