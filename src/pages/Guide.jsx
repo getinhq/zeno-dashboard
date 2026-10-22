@@ -615,6 +615,7 @@ export function Guide() {
               ['A person can’t see Team or Templates', 'Those pages are for supervisors, production and pipeline. An admin can change their role on Team.'],
               ['Invite link says it is not valid', 'It was already used, revoked, expired, or a newer link replaced it. Create a new link on Team.'],
               ['A review stays on “Converting…”', 'The server converts uploads with ffmpeg, one at a time; long renders take a while. If it says the conversion failed, the file may be damaged or in an unusual format: export an MP4 or MOV and submit again.'],
+              ['A version won’t open (“blob not found”)', 'Run Settings → Storage health. It lists anything whose stored files are missing and what to do: republish broken versions from the work file, rebuild review previews with one click.'],
               ['No “Open in DJV” button', 'Zeno Bridge must be running on your computer and list the viewer under “viewers” (and executable_allowlist) in its config.'],
             ].map(([q, a]) => (
               <div key={q}>

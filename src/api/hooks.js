@@ -896,3 +896,16 @@ export function useSaveStoragePolicy() {
     onSuccess: (data) => qc.setQueryData(['storage_policy'], data),
   });
 }
+
+// —— Storage integrity ——
+export function useStorageCheck({ enabled = true } = {}) {
+  return useQuery({ queryKey: ['storage_check'], queryFn: () => api.get('/api/v1/storage-check'), enabled });
+}
+
+export function useRunStorageCheck() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post('/api/v1/storage-check', {}),
+    onSuccess: (data) => qc.setQueryData(['storage_check'], data),
+  });
+}
