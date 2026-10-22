@@ -132,7 +132,8 @@ export const api = {
     request(path, { method: 'POST', body: JSON.stringify(body), ...extra }),
   put: (path, body) => request(path, { method: 'PUT', body: JSON.stringify(body) }),
   patch: (path, body) => request(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (path) => request(path, { method: 'DELETE' }),
+  delete: (path, body) =>
+    request(path, { method: 'DELETE', ...(body !== undefined && { body: JSON.stringify(body) }) }),
   postForm,
   getBlobUrl,
 };

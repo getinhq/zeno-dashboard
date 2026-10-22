@@ -14,6 +14,7 @@ import {
 import { ThemedSelect } from '../components/ThemedSelect';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessSettings } from '../lib/permissions';
+import { api } from '../api/client';
 
 const ROLE_OPTIONS = [
   { value: 'artist', label: 'Artist' },
@@ -267,6 +268,45 @@ function MembersTable({ canManage, currentUserId }) {
   );
 }
 
+/** Owner-only: permanently delete the studio after typing its name. */
+function DangerZone({ org }) {
+  const { logout } = useAuth();
+  const [confirm, setConfirm] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  return (
+    <section className="border border-danger/40 rounded-md p-5 flex flex-col gap-3">
+      <h2 className="text-lg font-semibold text-danger">Delete studio</h2>
+      <p className="text-sm text-muted">
+        Permanently deletes <b className="text-foreground">{org.name}</b>: every project, task, version, invite and member
+        account. This cannot be undone. Type the studio name to confirm.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input className={`${inputClass} max-w-xs`} value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder={org.name} />
+        <button
+          type="button"
+          className="btn-secondary text-sm text-danger border-danger/50 disabled:opacity-40"
+          disabled={confirm !== org.name || busy}
+          onClick={async () => {
+            setBusy(true);
+            setError(null);
+            try {
+              await api.delete('/api/v1/organization', { confirm_name: confirm });
+              logout();
+            } catch (e) {
+              setError(e.message);
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? 'Deleting…' : 'Delete studio forever'}
+        </button>
+      </div>
+      {error && <p className="text-sm text-danger">{error}</p>}
+    </section>
+  );
+}
+
 export function Team() {
   const { user } = useAuth();
   const isAdmin = canAccessSettings(user);
@@ -324,6 +364,8 @@ export function Team() {
         <h2 className="text-lg font-semibold">Members</h2>
         <MembersTable canManage={isAdmin} currentUserId={user?.id} />
       </section>
+
+      {org && user?.id && org.owner_id === user.id && <DangerZone org={org} />}
     </div>
   );
 }
