@@ -748,3 +748,131 @@ export function useRevokeApiToken() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['api_tokens'] }),
   });
 }
+
+// —— Review ——
+const PROCESSING = new Set(['queued', 'processing']);
+
+export function useReviewItems(params = {}, options = {}) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') search.set(k, String(v));
+  });
+  return useQuery({
+    queryKey: ['review_items', params],
+    queryFn: () => api.get(`/api/v1/reviews/items?${search.toString()}`),
+    enabled: options.enabled ?? !!(params.project_id || params.task_id || params.shot_id || params.asset_id),
+    // Keep polling while anything is still converting.
+    refetchInterval: (q) => (q.state.data || []).some((i) => PROCESSING.has(i.processing_status)) ? 3000 : options.refetchInterval ?? false,
+  });
+}
+
+export function useReviewItem(itemId) {
+  return useQuery({
+    queryKey: ['review_item', itemId],
+    queryFn: () => api.get(`/api/v1/reviews/items/${itemId}`),
+    enabled: !!itemId,
+    refetchInterval: (q) => (PROCESSING.has(q.state.data?.processing_status) ? 2000 : false),
+  });
+}
+
+function useReviewNotesCache() {
+  const qc = useQueryClient();
+  return (itemId, notes) => {
+    if (!notes) return;
+    // Notes belong to the task: every cached revision of it shows the same list.
+    const item = qc.getQueryData(['review_item', itemId]);
+    qc.getQueriesData({ queryKey: ['review_item'] }).forEach(([key, data]) => {
+      if (data && (data.id === itemId || (item && data.task_id === item.task_id))) {
+        qc.setQueryData(key, { ...data, notes });
+      }
+    });
+    qc.invalidateQueries({ queryKey: ['review_items'] });
+  };
+}
+
+export function useSubmitReview() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, file, frameStart, fps, description, onProgress }) => {
+      const fd = new FormData();
+      fd.append('task_id', taskId);
+      fd.append('file', file);
+      if (frameStart !== '' && frameStart != null) fd.append('frame_start', String(frameStart));
+      if (fps) fd.append('fps', String(fps));
+      if (description) fd.append('description', description);
+      return api.uploadWithProgress('/api/v1/reviews/items', fd, onProgress);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['review_items'] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useReviewDecision(itemId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.post(`/api/v1/reviews/items/${itemId}/decision`, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['review_item'] });
+      qc.invalidateQueries({ queryKey: ['review_items'] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+  });
+}
+
+export function useAddReviewNote(itemId) {
+  const apply = useReviewNotesCache();
+  return useMutation({
+    mutationFn: (body) => api.post(`/api/v1/reviews/items/${itemId}/notes`, body),
+    onSuccess: (data) => apply(itemId, data?.notes),
+  });
+}
+
+export function useUpdateReviewNote(itemId) {
+  const apply = useReviewNotesCache();
+  return useMutation({
+    mutationFn: ({ noteId, ...body }) => api.patch(`/api/v1/reviews/notes/${noteId}`, body),
+    onSuccess: (data) => apply(itemId, data?.notes),
+  });
+}
+
+export function useDeleteReviewNote(itemId) {
+  const apply = useReviewNotesCache();
+  return useMutation({
+    mutationFn: (noteId) => api.delete(`/api/v1/reviews/notes/${noteId}`),
+    onSuccess: (data) => apply(itemId, data?.notes),
+  });
+}
+
+export function useDeleteReviewItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId) => api.delete(`/api/v1/reviews/items/${itemId}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['review_items'] }),
+  });
+}
+
+export function useReviewShares(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: ['review_shares', projectId],
+    queryFn: () => api.get(`/api/v1/reviews/shares?project_id=${projectId}`),
+    enabled: !!projectId && enabled,
+  });
+}
+
+export function useCreateReviewShare() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.post('/api/v1/reviews/shares', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['review_shares'] }),
+  });
+}
+
+export function useRevokeReviewShare() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/api/v1/reviews/shares/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['review_shares'] }),
+  });
+}

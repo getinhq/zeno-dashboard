@@ -10,6 +10,8 @@ import { Tasks } from './pages/Tasks';
 import { TaskDetail } from './pages/TaskDetail';
 import { Entities } from './pages/Entities';
 import { Reviews } from './pages/Reviews';
+import { ReviewPage } from './pages/ReviewPage';
+import { PublicReview } from './pages/PublicReview';
 import { Settings } from './pages/Settings';
 import { Publish } from './pages/Publish';
 import { Explorer } from './pages/Explorer';
@@ -42,6 +44,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/invite/:token" element={<AcceptInvite />} />
+              <Route path="/r/:token" element={<PublicReview />} />
               <Route
                 path="/"
                 element={(
@@ -62,6 +65,7 @@ function App() {
                 <Route path="task/:id" element={<TaskDetail />} />
                 <Route path="tasks/:id" element={<TaskDetail />} />
                 <Route path="reviews" element={<Reviews />} />
+                <Route path="review/:itemId" element={<ReviewPage />} />
                 <Route path="issues" element={<Issues />} />
                 <Route
                   path="settings"

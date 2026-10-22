@@ -126,6 +126,46 @@ async function getBlobUrl(path) {
   return URL.createObjectURL(blob);
 }
 
+/** Absolute URL for a server-relative media path (signed review media URLs). */
+export function mediaUrl(path) {
+  if (!path) return null;
+  return path.startsWith('http') ? path : `${BASE}${path}`;
+}
+
+function _xhrUpload(path, formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', path.startsWith('http') ? path : `${BASE}${path}`);
+    const auth = _authHeaders();
+    if (auth.Authorization) xhr.setRequestHeader('Authorization', auth.Authorization);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => resolve(xhr);
+    xhr.onerror = () => reject(new Error('Upload failed: network error'));
+    xhr.send(formData);
+  });
+}
+
+/** Multipart POST with upload progress (0..1); refreshes the session once on 401. */
+async function uploadWithProgress(path, formData, onProgress) {
+  let xhr = await _xhrUpload(path, formData, onProgress);
+  if (xhr.status === 401 && _authProvider?.getRefreshToken?.()) {
+    if (await _refreshAccess()) xhr = await _xhrUpload(path, formData, onProgress);
+    if (xhr.status === 401) _authProvider.onAuthFailure?.();
+  }
+  let data = null;
+  try {
+    data = JSON.parse(xhr.responseText);
+  } catch (_) {}
+  if (xhr.status < 200 || xhr.status >= 300) {
+    const err = new Error(data?.detail || `Upload failed (${xhr.status})`);
+    err.status = xhr.status;
+    throw err;
+  }
+  return data;
+}
+
 export const api = {
   get: (path, opts = {}) => request(path, { method: 'GET', ...opts }),
   post: (path, body, extra = {}) =>
@@ -136,6 +176,7 @@ export const api = {
     request(path, { method: 'DELETE', ...(body !== undefined && { body: JSON.stringify(body) }) }),
   postForm,
   getBlobUrl,
+  uploadWithProgress,
 };
 
 export default api;
