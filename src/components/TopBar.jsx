@@ -45,6 +45,11 @@ export function TopBar() {
                   {user?.name || user?.username || 'Unknown'}
                 </p>
                 <p className="text-xs text-muted truncate">{user?.email || user?.username}</p>
+                {user?.organization?.name && (
+                  <p className="text-xs text-foreground/80 truncate mt-1" title="Studio">
+                    {user.organization.name}
+                  </p>
+                )}
                 {user?.app_role && (
                   <span className="inline-block mt-1 text-[10px] uppercase tracking-wider text-primary border border-primary/40 rounded px-1.5 py-0.5">
                     {user.app_role}

@@ -15,6 +15,7 @@ import { Publish } from './pages/Publish';
 import { Explorer } from './pages/Explorer';
 import { Issues } from './pages/Issues';
 import { Login } from './pages/Login';
+import { Signup } from './pages/Signup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,7 @@ function App() {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
               <Route
                 path="/"
                 element={(
