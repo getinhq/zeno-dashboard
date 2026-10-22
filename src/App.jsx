@@ -18,6 +18,7 @@ import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { AcceptInvite } from './pages/AcceptInvite';
 import { Team } from './pages/Team';
+import { Templates } from './pages/Templates';
 import { GettingStarted } from './pages/GettingStarted';
 
 const queryClient = new QueryClient({
@@ -63,6 +64,14 @@ function App() {
                 />
                 <Route path="publish" element={<Publish />} />
                 <Route path="getting-started" element={<GettingStarted />} />
+                <Route
+                  path="templates"
+                  element={(
+                    <RequireRole roles={['pipeline', 'supervisor', 'production']}>
+                      <Templates />
+                    </RequireRole>
+                  )}
+                />
                 <Route
                   path="team"
                   element={(

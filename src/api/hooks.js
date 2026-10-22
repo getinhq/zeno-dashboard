@@ -172,7 +172,11 @@ export function useCreateAsset(projectId) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body) => api.post(`/api/v1/projects/${projectId}/assets`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['assets', projectId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['assets', projectId] });
+      // Task templates create the asset's tasks server-side.
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
   });
 }
 
@@ -208,7 +212,11 @@ export function useCreateShot(sequenceId) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body) => api.post(`/api/v1/sequences/${sequenceId}/shots`, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['shots', sequenceId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['shots', sequenceId] });
+      qc.invalidateQueries({ queryKey: ['project_shots'] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
   });
 }
 
@@ -569,5 +577,46 @@ export function useUpdateUser() {
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['organization'] });
     },
+  });
+}
+
+// —— Task templates ——
+export function useTaskTemplates() {
+  return useQuery({
+    queryKey: ['task_templates'],
+    queryFn: () => api.get('/api/v1/task-templates'),
+  });
+}
+
+export function useTaskVocabulary() {
+  return useQuery({
+    queryKey: ['task_vocabulary'],
+    queryFn: () => api.get('/api/v1/task-templates/vocabulary'),
+    staleTime: Infinity,
+  });
+}
+
+export function useSaveTaskTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) =>
+      id ? api.patch(`/api/v1/task-templates/${id}`, body) : api.post('/api/v1/task-templates', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['task_templates'] }),
+  });
+}
+
+export function useDeleteTaskTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/api/v1/task-templates/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['task_templates'] }),
+  });
+}
+
+export function useApplyTaskTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }) => api.post(`/api/v1/task-templates/${id}/apply`, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }

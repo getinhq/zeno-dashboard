@@ -9,6 +9,7 @@ import {
   Settings,
   Bug,
   Users,
+  LayoutTemplate,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessSettings, isManagement } from '../lib/permissions';
@@ -26,7 +27,10 @@ const baseLinks = [
 export function Sidebar() {
   const { user } = useAuth();
   const links = [...baseLinks];
-  if (isManagement(user)) links.push({ to: '/team', label: 'Team', icon: Users });
+  if (isManagement(user)) {
+    links.push({ to: '/templates', label: 'Templates', icon: LayoutTemplate });
+    links.push({ to: '/team', label: 'Team', icon: Users });
+  }
   if (canAccessSettings(user)) links.push({ to: '/settings', label: 'Settings', icon: Settings });
 
   return (

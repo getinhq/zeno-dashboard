@@ -40,16 +40,23 @@ const KANBAN_COLUMNS = [
   { key: 'completed', label: 'Completed' },
 ];
 
+// Mirrors the tasks.type CHECK constraint (zeno-api schema/init.sql).
 const TASK_TYPES = [
+  'concept',
+  'storyboard',
   'model',
-  'rig',
   'texture',
+  'rig',
+  'lookdev',
+  'groom',
+  'cfx',
   'layout',
   'animation',
   'fx',
   'lighting',
   'render',
   'comp',
+  'edit',
 ];
 
 function normalizeStatus(raw) {
@@ -316,6 +323,12 @@ const STAGE_TO_TYPE = {
   texture: 'texture',
   fx: 'fx',
   render: 'render',
+  concept: 'concept',
+  storyboard: 'storyboard',
+  lookdev: 'lookdev',
+  groom: 'groom',
+  cfx: 'cfx',
+  edit: 'edit',
 };
 
 function resolveTaskType(stageLabel) {
