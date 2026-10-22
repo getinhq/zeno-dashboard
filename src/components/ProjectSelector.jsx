@@ -28,7 +28,11 @@ export function ProjectSelector() {
   useEffect(() => {
     // Wait for any refetch: a just-created project is selected before the list includes it.
     if (isLoading || isFetching) return;
-    if (!projectId) return;
+    if (!projectId) {
+      // Nothing chosen yet (new studio, new browser): open the first active project.
+      if (projects.length) setProjectId(projects[0].id);
+      return;
+    }
     // If the previously-selected project no longer exists, clear it so the UI recovers.
     if (!projects.some((p) => p.id === projectId)) {
       setProjectId(null);

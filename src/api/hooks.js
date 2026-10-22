@@ -727,3 +727,24 @@ export function useSaveMilestone(projectId) {
 export function useDeleteMilestone(projectId) {
   return useScheduleMutation(projectId, (id) => api.delete(`/api/v1/milestones/${id}`));
 }
+
+// —— Personal access tokens ——
+export function useApiTokens() {
+  return useQuery({ queryKey: ['api_tokens'], queryFn: () => api.get('/api/v1/auth/tokens') });
+}
+
+export function useCreateApiToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body) => api.post('/api/v1/auth/tokens', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['api_tokens'] }),
+  });
+}
+
+export function useRevokeApiToken() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => api.delete(`/api/v1/auth/tokens/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['api_tokens'] }),
+  });
+}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { User, LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { User, LogOut, KeyRound } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { NotificationsButton } from './NotificationsButton';
 import { useAuth } from '../contexts/AuthContext';
@@ -56,6 +57,14 @@ export function TopBar() {
                   </span>
                 )}
               </div>
+              <Link
+                to="/account"
+                onClick={() => setMenuOpen(false)}
+                className="w-full px-3 py-2 text-sm text-left text-foreground hover:bg-card-hover flex items-center gap-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                Account &amp; API tokens
+              </Link>
               {enabled && (
                 <button
                   type="button"

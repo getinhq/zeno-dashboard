@@ -2,11 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import { ThemedSelect } from '../components/ThemedSelect';
 import { useProjectContext } from '../contexts/ProjectContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const STAGES = ['Animatics', 'Layout', 'Animation', 'Lighting', 'Comp'];
 
 export function Settings() {
   const { projectId } = useProjectContext();
+  const { user } = useAuth();
+  // CAS storage is a server-wide choice. Only the self-hosted owner studio (the legacy
+  // "default" org, or no org in dev mode) may change it; hosted studios just see a note.
+  const canManageStorage = !user?.organization || user.organization.slug === 'default';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -217,9 +222,11 @@ export function Settings() {
       </div>
 
       <div className="glass-panel p-6 flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Global CAS Storage</h2>
+        <h2 className="text-xl font-semibold">{canManageStorage ? 'Global CAS Storage' : 'Storage'}</h2>
         <p className="text-sm text-muted">
-          Choose where CAS blobs are stored. When MinIO is disabled, API uses the local CAS path.
+          {canManageStorage
+            ? 'Choose where CAS blobs are stored. When MinIO is disabled, API uses the local CAS path.'
+            : 'Published files are stored and deduplicated by the Zeno server your studio uses. Nothing to configure here.'}
         </p>
 
         {loading && <p className="text-sm text-muted">Loading settings...</p>}
@@ -228,6 +235,8 @@ export function Settings() {
 
         {!loading && (
           <div className="flex flex-col gap-4">
+            {canManageStorage && (
+            <>
             <label className="flex items-center gap-3">
               <input
                 type="checkbox"
@@ -249,6 +258,8 @@ export function Settings() {
                 Example path hint: <code>/tmp/zeno_cas</code> on host development, or <code>/app/cas_data</code> inside Docker API container.
               </p>
             </div>
+            </>
+            )}
 
             <div>
               <button
@@ -259,7 +270,9 @@ export function Settings() {
               >
                 {saving ? 'Saving...' : 'Save settings'}
               </button>
-              <p className="text-xs text-muted mt-2">Saves CAS options and everything below (including DCC apps) in one request.</p>
+              <p className="text-xs text-muted mt-2">
+                {canManageStorage ? 'Saves CAS options and everything below (including DCC apps) in one request.' : 'Saves everything below (including DCC apps).'}
+              </p>
             </div>
           </div>
         )}
