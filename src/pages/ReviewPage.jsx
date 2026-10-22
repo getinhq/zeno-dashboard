@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, Download, Loader2, RefreshCw, Share2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, Loader2, MonitorPlay, RefreshCw, Share2, XCircle } from 'lucide-react';
 import {
   useAddReviewNote,
   useDeleteReviewNote,
@@ -11,6 +11,7 @@ import {
 import { api, mediaUrl } from '../api/client';
 import { useAuth } from '../contexts/AuthContext';
 import { isManagement } from '../lib/permissions';
+import { bridgeViewers, openInViewer } from '../lib/dccLaunch';
 import { ReviewPlayer } from '../components/review/ReviewPlayer';
 import { ShareDialog } from '../components/review/ShareDialog';
 import { ReviewStatus } from '../components/review/ReviewStatus';
@@ -28,6 +29,22 @@ export function ReviewPage() {
   const [comment, setComment] = useState('');
   const [sharing, setSharing] = useState(false);
   const manager = isManagement(user);
+  const [viewers, setViewers] = useState([]);
+  const [viewerMsg, setViewerMsg] = useState(null);
+
+  useEffect(() => {
+    bridgeViewers().then(setViewers);
+  }, []);
+
+  const openLocally = async (viewer) => {
+    setViewerMsg(`Opening in ${viewer}…`);
+    try {
+      await openInViewer({ path: item.media.original, filename: item.source_filename, viewer });
+      setViewerMsg(null);
+    } catch (e) {
+      setViewerMsg(e.message);
+    }
+  };
 
   if (isLoading) return <p className="text-muted text-sm">Loading review…</p>;
   if (error || !item) {
@@ -91,6 +108,19 @@ export function ReviewPage() {
               <Download className="w-3.5 h-3.5" /> Original
             </a>
           )}
+          {item.media?.original &&
+            viewers.map((v) => (
+              <button
+                key={v}
+                type="button"
+                className="btn-secondary text-xs py-1.5 gap-1.5"
+                onClick={() => openLocally(v)}
+                title="Download the original through Zeno Bridge and open it in a local viewer"
+              >
+                <MonitorPlay className="w-3.5 h-3.5" /> Open in {v.toUpperCase()}
+              </button>
+            ))}
+          {viewerMsg && <span className="text-xs text-muted max-w-[16rem] truncate" title={viewerMsg}>{viewerMsg}</span>}
           {manager && ready && (
             <button type="button" className="btn-secondary text-xs py-1.5 gap-1.5" onClick={() => setSharing(true)}>
               <Share2 className="w-3.5 h-3.5" /> Share

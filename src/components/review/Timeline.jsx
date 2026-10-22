@@ -25,6 +25,8 @@ export function Timeline({ frameStart, frameCount, frameIndex, onSeek, notes = [
   const [hover, setHover] = useState(null); // { index, x }
   const dragging = useRef(false);
   const last = Math.max(1, frameCount - 1);
+  const slotW = 46 * aspect;
+  const slots = barW > 0 ? Math.max(1, Math.ceil(barW / slotW)) : 0;
 
   const indexAt = (clientX) => {
     const b = barRef.current.getBoundingClientRect();
@@ -74,14 +76,14 @@ export function Timeline({ frameStart, frameCount, frameIndex, onSeek, notes = [
         onPointerUp={onPointerUp}
         onPointerLeave={() => setHover(null)}
       >
-        {filmstrip?.url && barW > 0 && (
+        {filmstrip?.url && slots > 0 && (
           // As many undistorted thumbnails as fit, each showing its part of the clip.
           <div className="absolute inset-0 flex overflow-hidden rounded-sm opacity-50 pointer-events-none" aria-hidden>
-            {Array.from({ length: Math.max(1, Math.ceil(barW / (46 * aspect))) }, (_, i, arr) => (
+            {Array.from({ length: slots }, (_, i) => (
               <div
                 key={i}
                 className="h-full shrink-0 border-r border-black/60"
-                style={{ width: 46 * aspect, ...tile(Math.round(((i + 0.5) / arr.length) * last)) }}
+                style={{ width: slotW, ...tile(Math.round(((i + 0.5) / slots) * last)) }}
               />
             ))}
           </div>

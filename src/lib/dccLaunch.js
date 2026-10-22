@@ -45,3 +45,29 @@ export async function launchWithContext({ context, headers }) {
   }
   return { launched, token };
 }
+
+const daemonBase = () => import.meta.env.VITE_ZENO_BRIDGE_DAEMON_URL || 'http://127.0.0.1:17373';
+
+/** Media viewers configured in the local Zeno Bridge ([] when the bridge is not running). */
+export async function bridgeViewers() {
+  try {
+    const r = await fetch(`${daemonBase()}/viewers`, { signal: AbortSignal.timeout?.(1500) });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return Array.isArray(data.viewers) ? data.viewers : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+/** Ask the bridge to download a review's original and open it in a local viewer. */
+export async function openInViewer({ path, filename, viewer }) {
+  const r = await fetch(`${daemonBase()}/open-media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, filename, viewer }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || `Bridge error (${r.status})`);
+  return data;
+}

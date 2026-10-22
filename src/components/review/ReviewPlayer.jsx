@@ -293,17 +293,18 @@ export function ReviewPlayer({
     : null;
 
   const hud = hudOn ? (
-    <>
-      <div className="absolute top-2 left-2 text-[11px] font-mono bg-black/70 text-foreground px-2 py-1 rounded pointer-events-none">
+    // One wrapping row so the two labels never overlap in narrow (side-by-side) panes.
+    <div className="absolute top-2 left-2 right-2 flex flex-wrap justify-between gap-1 text-[11px] font-mono pointer-events-none">
+      <span className="bg-black/70 text-foreground px-2 py-1 rounded">
         {item.task?.entity_label || item.task?.title} · {item.label} · <span className="text-primary">{scene}</span>
         {isVideo && <span className="text-muted"> / {item.frame_start}–{item.frame_end}</span>}
-      </div>
-      <div className="absolute top-2 right-2 text-[11px] font-mono bg-black/70 text-muted px-2 py-1 rounded pointer-events-none text-right">
+      </span>
+      <span className="bg-black/70 text-muted px-2 py-1 rounded">
         {isVideo ? `Proxy H.264 · ${fpsLabel(item.fps)} fps` : 'Still'} · Rec.709/sRGB
         {item.width ? ` · src ${item.width}×${item.height}` : ''}
         {playing && dropped > 0 && <span className="text-warning"> · {dropped} dropped</span>}
-      </div>
-    </>
+      </span>
+    </div>
   ) : null;
 
   const bMessage =

@@ -14,8 +14,11 @@ import {
   HardDrive,
   KeyRound,
   LayoutTemplate,
+  MessageSquare,
   Monitor,
+  PenLine,
   PlaySquare,
+  RotateCcw,
   Server,
   Upload,
   Users,
@@ -33,6 +36,7 @@ const SECTIONS = [
   { id: 'team', title: 'Team and invites' },
   { id: 'connect-dcc', title: 'Connect Blender' },
   { id: 'publishing', title: 'Publishing and versions' },
+  { id: 'review', title: 'Review' },
   { id: 'troubleshooting', title: 'Troubleshooting' },
 ];
 
@@ -291,7 +295,7 @@ export function Guide() {
                   steps={[
                     { icon: Monitor, title: 'Open in DCC', sub: 'from a task or asset' },
                     { icon: Upload, title: 'Publish', sub: 'new version from Blender' },
-                    { icon: PlaySquare, title: 'Review', sub: 'approve or request changes' },
+                    { icon: PlaySquare, title: 'Review', sub: 'notes on frames, approve or send back' },
                     { icon: Check, title: 'Done', sub: 'task + schedule update', tone: 'primary' },
                   ]}
                 />
@@ -474,7 +478,119 @@ export function Guide() {
               ))}
             </div>
           </Figure>
-          <p>Supervisors review versions and approve or request changes; the task status follows.</p>
+          <p>
+            To get feedback, submit a playblast or render for the task: that is what supervisors watch and approve (next
+            section). The task status follows their decision.
+          </p>
+        </Section>
+
+        <Section id="review" title="Review">
+          <p>
+            Every playblast or render submitted for a task becomes its next <b>revision</b> (v001, v002, …). Reviewers watch it
+            frame by frame, draw on the picture and leave notes pinned to frames. Notes belong to the <i>task</i>, not to one
+            revision, so when the artist sends v002 every open note from v001 is still there, at the same frames, waiting to be
+            checked off.
+          </p>
+          <Figure caption="The review loop. Notes travel with the shot until the reviewer verifies them.">
+            <div className="flex flex-col gap-4 min-w-[640px]">
+              <Stage label="Artist">
+                <Flow
+                  steps={[
+                    { icon: Clapperboard, title: 'Submit for review', sub: 'Blender: Zeno → Submit for Review, or upload here' },
+                    { icon: Server, title: 'Converted', sub: 'frame-exact proxy, thumbnail, filmstrip' },
+                  ]}
+                />
+              </Stage>
+              <Stage label="Reviewer">
+                <Flow
+                  steps={[
+                    { icon: PenLine, title: 'Notes on frames', sub: 'draw, type, pick a frame range' },
+                    { icon: RotateCcw, title: 'Request changes', sub: 'task goes back to the artist' },
+                  ]}
+                />
+              </Stage>
+              <Stage label="Artist">
+                <Flow
+                  steps={[
+                    { icon: MessageSquare, title: 'Notes in Blender', sub: 'jump to frame, timeline markers' },
+                    { icon: Check, title: 'Mark fixed', sub: 'then submit v002' },
+                  ]}
+                />
+              </Stage>
+              <Stage label="Reviewer">
+                <Flow
+                  steps={[
+                    { icon: PlaySquare, title: 'Compare v002 with v001', sub: 'wipe, side by side or flip' },
+                    { icon: Check, title: 'Verify and approve', sub: 'task done', tone: 'primary' },
+                  ]}
+                />
+              </Stage>
+            </div>
+          </Figure>
+          <Shot src="/guide/review-player.jpg" alt="Review player" caption="A note with a drawing on frames 1018–1024. The timeline shows every note; red is open, amber is fixed, green is verified." />
+
+          <h3 className="text-lg font-serif text-foreground mt-2">Notes: open, fixed, verified</h3>
+          <Figure>
+            <Flow
+              steps={[
+                { title: 'Open', sub: 'the reviewer’s note' },
+                { title: 'Fixed', sub: 'artist: “done in v002”' },
+                { title: 'Verified', sub: 'reviewer checked it', tone: 'primary' },
+              ]}
+            />
+          </Figure>
+          <ul className="list-disc pl-5 flex flex-col gap-1">
+            <li>Only the reviewer (or the note&apos;s author) can verify or reopen a note. Approving verifies every note marked fixed.</li>
+            <li>Untick <b>needs a fix</b> for a plain comment (“lovely timing”) that should not be tracked.</li>
+            <li>A note from an earlier revision says <i>from v001</i>. If its frame is outside the new revision (the shot was trimmed or retimed), Zeno says so; check it by eye.</li>
+            <li>Submit with your scene&apos;s frame numbers (e.g. starting at 1001). Blender does this for you; on upload, set <b>First frame number</b>.</li>
+          </ul>
+
+          <h3 className="text-lg font-serif text-foreground mt-2">Compare versions</h3>
+          <p>
+            Pick <b>Wipe</b>, <b>Side by side</b> or <b>Flip A/B</b> under the player. B defaults to the last approved revision (or the
+            previous one). Both sides stay on the same scene frame while you step or play.
+          </p>
+          <Shot src="/guide/review-compare.jpg" alt="Side-by-side compare" caption="v002 against v001 on frame 1021." />
+
+          <h3 className="text-lg font-serif text-foreground mt-2">Share with a client</h3>
+          <p>
+            Press <b>Share</b> on a review (or select several on the Reviews page) to make a link for someone without an account,
+            optionally with a password and an expiry. Clients can watch, draw, leave notes and approve or ask for changes. They
+            never see your internal notes; their notes appear in your list marked <i>(client)</i>, and their approval is recorded
+            for the supervisor to act on. Revoke links any time under Reviews → Client links.
+          </p>
+          <Shot src="/guide/review-client.jpg" alt="Client review page" caption="What the client sees." />
+
+          <h3 className="text-lg font-serif text-foreground mt-2">Keyboard</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm">
+            {[
+              ['Space / K', 'play · pause'],
+              ['← →', 'one frame (Shift: 10)'],
+              ['J / L', 'play backwards · forwards (L again: faster)'],
+              ['I / O / P', 'in point · out point · loop'],
+              ['[ ]', 'previous · next open note'],
+              ['N', 'write a note on this frame'],
+              ['D', 'draw (Esc to stop, ⌘Z to undo)'],
+              ['C / B', 'cycle compare mode · flip A/B'],
+              ['Home / End', 'first · last frame'],
+              ['F / H / M', 'full screen · info overlay · mute'],
+            ].map(([k, v]) => (
+              <div key={k} className="flex gap-3">
+                <kbd className="px-1.5 py-0.5 rounded bg-card border border-border font-mono text-foreground text-xs whitespace-nowrap">{k}</kbd>
+                <span className="text-muted">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="text-lg font-serif text-foreground mt-2">Full quality: open the original in DJV or OpenRV</h3>
+          <p>
+            The browser plays an H.264 proxy (up to 1920 px, Rec.709). For pixel-level or colour-critical checks, install a
+            viewer such as DJV or OpenRV and add it to the Zeno Bridge config. An <b>Open in DJV</b> button then appears on every
+            review; it downloads the original upload and opens it locally.
+          </p>
+          <Code>{`"viewers": { "djv": "/Applications/DJV.app/Contents/MacOS/djv" },
+"executable_allowlist": ["/Applications/DJV.app/Contents/MacOS/djv", "…"]`}</Code>
         </Section>
 
         <Section id="troubleshooting" title="Troubleshooting">
@@ -485,6 +601,8 @@ export function Guide() {
               ['Auto-schedule says the dependencies contain a loop', 'Two tasks wait for each other. Open the schedule, click the tasks named in your recent links, and remove one link.'],
               ['A person can’t see Team or Templates', 'Those pages are for supervisors, production and pipeline. An admin can change their role on Team.'],
               ['Invite link says it is not valid', 'It was already used, revoked, expired, or a newer link replaced it. Create a new link on Team.'],
+              ['A review stays on “Converting…”', 'The server converts uploads with ffmpeg, one at a time; long renders take a while. If it says the conversion failed, the file may be damaged or in an unusual format: export an MP4 or MOV and submit again.'],
+              ['No “Open in DJV” button', 'Zeno Bridge must be running on your computer and list the viewer under “viewers” (and executable_allowlist) in its config.'],
             ].map(([q, a]) => (
               <div key={q}>
                 <dt className="text-foreground font-medium">{q}</dt>
