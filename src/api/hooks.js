@@ -656,3 +656,74 @@ export function useUpdateBreakdown(projectId) {
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }
+
+// —— Schedule ——
+export function useSchedule(projectId) {
+  return useQuery({
+    queryKey: ['schedule', projectId],
+    queryFn: () => api.get(`/api/v1/projects/${projectId}/schedule`),
+    enabled: !!projectId,
+  });
+}
+
+function useScheduleMutation(projectId, mutationFn, extra = {}) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['schedule', projectId] });
+      qc.invalidateQueries({ queryKey: ['tasks'] });
+    },
+    ...extra,
+  });
+}
+
+export function useAutoSchedule(projectId) {
+  return useScheduleMutation(projectId, (body) => api.post(`/api/v1/projects/${projectId}/schedule/auto`, body));
+}
+
+/** Move/resize a bar; the bar moves immediately and snaps back if the save fails. */
+export function useSetTaskDates(projectId) {
+  const qc = useQueryClient();
+  const key = ['schedule', projectId];
+  return useScheduleMutation(
+    projectId,
+    ({ taskId, start_date, due_date }) => api.patch(`/api/v1/tasks/${taskId}/dates`, { start_date, due_date }),
+    {
+      onMutate: async ({ taskId, start_date, due_date }) => {
+        await qc.cancelQueries({ queryKey: key });
+        const previous = qc.getQueryData(key);
+        if (previous) {
+          qc.setQueryData(key, {
+            ...previous,
+            tasks: previous.tasks.map((t) => (t.id === taskId ? { ...t, start_date, due_date } : t)),
+          });
+        }
+        return { previous };
+      },
+      onError: (_e, _v, ctx) => ctx?.previous && qc.setQueryData(key, ctx.previous),
+    },
+  );
+}
+
+export function useAddDependency(projectId) {
+  return useScheduleMutation(projectId, ({ taskId, dependsOn }) =>
+    api.post(`/api/v1/tasks/${taskId}/dependencies`, { depends_on: dependsOn }),
+  );
+}
+
+export function useRemoveDependency(projectId) {
+  return useScheduleMutation(projectId, ({ taskId, dependsOn }) =>
+    api.delete(`/api/v1/tasks/${taskId}/dependencies/${dependsOn}`),
+  );
+}
+
+export function useSaveMilestone(projectId) {
+  return useScheduleMutation(projectId, ({ id, body }) =>
+    id ? api.patch(`/api/v1/milestones/${id}`, body) : api.post(`/api/v1/projects/${projectId}/milestones`, body),
+  );
+}
+
+export function useDeleteMilestone(projectId) {
+  return useScheduleMutation(projectId, (id) => api.delete(`/api/v1/milestones/${id}`));
+}

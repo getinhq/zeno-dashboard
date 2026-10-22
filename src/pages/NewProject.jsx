@@ -102,7 +102,7 @@ export function NewProject() {
       assets: assetNames,
     });
     setProjectId(res.project.id);
-    navigate('/entities', { replace: true, state: { created: res.created } });
+    navigate('/schedule', { replace: true, state: { created: res.created } });
   };
 
   return (

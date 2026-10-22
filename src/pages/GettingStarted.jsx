@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Circle, ArrowRight } from 'lucide-react';
-import { useAssets, useOrganization, useTasks } from '../api/hooks';
+import { useAssets, useBreakdown, useOrganization, useSchedule, useTasks } from '../api/hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { useProjectContext } from '../contexts/ProjectContext';
 import { isManagement } from '../lib/permissions';
@@ -26,6 +26,8 @@ export function useOnboardingSteps() {
   const { data: org } = useOrganization();
   const { data: assets = [] } = useAssets(projectId);
   const { data: tasks = [] } = useTasks(projectId ? { project_id: projectId } : {}, { enabled: !!projectId });
+  const { data: breakdown } = useBreakdown(projectId);
+  const { data: schedule } = useSchedule(projectId);
   const [manual, setManual] = useState(readManual);
 
   const toggleManual = (id) => {
@@ -76,6 +78,24 @@ export function useOnboardingSteps() {
       done: tasks.length > 0,
       to: '/tasks',
       cta: 'Open tasks',
+    },
+    {
+      id: 'casting',
+      title: 'Cast your shots',
+      body: 'Mark which characters, props and environments appear in each shot. The schedule uses this to know a shot’s animation waits for its rigs.',
+      done: (breakdown?.links?.length || 0) > 0,
+      to: '/breakdown',
+      cta: 'Open breakdown',
+      managerOnly: true,
+    },
+    {
+      id: 'schedule',
+      title: 'Plan the schedule',
+      body: 'Auto-schedule lays every task out on the timeline in dependency order and tells you if you will hit the delivery date.',
+      done: (schedule?.tasks || []).some((t) => t.start_date),
+      to: '/schedule',
+      cta: 'Open schedule',
+      managerOnly: true,
     },
     {
       id: 'dcc',

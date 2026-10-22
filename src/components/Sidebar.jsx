@@ -11,6 +11,7 @@ import {
   Users,
   LayoutTemplate,
   Grid3x3,
+  CalendarRange,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessSettings, isManagement } from '../lib/permissions';
@@ -21,6 +22,7 @@ const baseLinks = [
   { to: '/breakdown', label: 'Breakdown', icon: Grid3x3 },
   { to: '/explorer', label: 'Explorer', icon: Compass },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+  { to: '/schedule', label: 'Schedule', icon: CalendarRange },
   { to: '/reviews', label: 'Reviews', icon: PlaySquare },
   { to: '/issues', label: 'Issues', icon: Bug },
   { to: '#', label: 'Reports', icon: BarChart3 },
