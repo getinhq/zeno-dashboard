@@ -10,6 +10,7 @@ import {
   Bug,
   Users,
   LayoutTemplate,
+  Grid3x3,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { canAccessSettings, isManagement } from '../lib/permissions';
@@ -17,6 +18,7 @@ import { canAccessSettings, isManagement } from '../lib/permissions';
 const baseLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: Home },
   { to: '/entities', label: 'Entities', icon: FolderTree },
+  { to: '/breakdown', label: 'Breakdown', icon: Grid3x3 },
   { to: '/explorer', label: 'Explorer', icon: Compass },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare },
   { to: '/reviews', label: 'Reviews', icon: PlaySquare },

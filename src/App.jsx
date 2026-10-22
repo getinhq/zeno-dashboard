@@ -20,6 +20,7 @@ import { AcceptInvite } from './pages/AcceptInvite';
 import { Team } from './pages/Team';
 import { Templates } from './pages/Templates';
 import { NewProject } from './pages/NewProject';
+import { Breakdown } from './pages/Breakdown';
 import { GettingStarted } from './pages/GettingStarted';
 
 const queryClient = new QueryClient({
@@ -50,6 +51,7 @@ function App() {
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="entities" element={<Entities />} />
                 <Route path="explorer" element={<Explorer />} />
+                <Route path="breakdown" element={<Breakdown />} />
                 <Route path="tasks" element={<Tasks />} />
                 <Route path="task/:id" element={<TaskDetail />} />
                 <Route path="tasks/:id" element={<TaskDetail />} />

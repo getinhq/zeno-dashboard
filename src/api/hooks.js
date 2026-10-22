@@ -620,3 +620,39 @@ export function useApplyTaskTemplate() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }
+
+// —— Casting / breakdown ——
+export function useBreakdown(projectId) {
+  return useQuery({
+    queryKey: ['breakdown', projectId],
+    queryFn: () => api.get(`/api/v1/projects/${projectId}/breakdown`),
+    enabled: !!projectId,
+  });
+}
+
+/** Optimistic grid toggles: the cell flips immediately and rolls back if the save fails. */
+export function useUpdateBreakdown(projectId) {
+  const qc = useQueryClient();
+  const key = ['breakdown', projectId];
+  return useMutation({
+    mutationFn: (body) => api.post(`/api/v1/projects/${projectId}/breakdown`, body),
+    onMutate: async ({ add = [], remove = [] }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData(key);
+      if (previous) {
+        const removeKeys = new Set(remove.map((x) => `${x.shot_id}:${x.asset_id}`));
+        const links = previous.links.filter((l) => !removeKeys.has(`${l.shot_id}:${l.asset_id}`));
+        const have = new Set(links.map((l) => `${l.shot_id}:${l.asset_id}`));
+        add.forEach((x) => {
+          if (!have.has(`${x.shot_id}:${x.asset_id}`)) links.push({ id: `tmp-${x.shot_id}-${x.asset_id}`, ...x });
+        });
+        qc.setQueryData(key, { ...previous, links });
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+}
